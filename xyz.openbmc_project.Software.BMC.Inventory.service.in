@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenBMC Software BMC Inventory
+
+[Service]
+ExecStart=/usr/bin/phosphor-bmc-inventory
+Restart=always
+Type=dbus
+BusName=xyz.openbmc_project.Software.BMC.Inventory
+
+[Install]
+WantedBy=multi-user.target

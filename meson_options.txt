@@ -30,6 +30,12 @@ option(
     description: 'Firmware update via USB.',
 )
 
+option('updater-services', type: 'feature', value: 'enabled',
+    description: 'Install the updater and version management services.')
+
+option('inventory-provider', type: 'feature', value: 'disabled',
+    description: 'Install the inventory service')
+
 # Variables
 option(
     'active-bmc-max-allowed', type: 'integer',
@@ -128,4 +134,10 @@ option(
     'alt-rwfs-dir', type: 'string',
     value: '/run/media/rwfs-alt/cow',
     description: 'The dir for alt-rwfs partition.',
+)
+
+option(
+    'firmware-inventory-name', type: 'string',
+    value: '',
+    description: 'Name for FW inventory item, if empty will use FW id',
 )

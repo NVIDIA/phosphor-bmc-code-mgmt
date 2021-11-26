@@ -90,6 +90,7 @@ conf.set_quoted('SYNC_LIST_DIR_PATH', get_option('sync-list-dir-path'))
 conf.set_quoted('SYNC_LIST_FILE_NAME', get_option('sync-list-file-name'))
 conf.set_quoted('BMC_MSL', get_option('bmc-msl'))
 conf.set_quoted('REGEX_BMC_MSL', get_option('regex-bmc-msl'))
+conf.set_quoted('FIRMWARE_INV_NAME', get_option('firmware-inventory-name'))
 
 if get_option('host-bios-upgrade').enabled()
     conf.set_quoted('BIOS_OBJPATH', get_option('bios-object-path'))
@@ -147,11 +148,22 @@ unit_files = [
     'reboot-guard-enable.service.in',
     'force-reboot.service.in',
     'usr-local.mount.in',
-    'xyz.openbmc_project.Software.BMC.Updater.service.in',
     'xyz.openbmc_project.Software.Download.service.in',
-    'xyz.openbmc_project.Software.Sync.service.in',
-    'xyz.openbmc_project.Software.Version.service.in'
+    'xyz.openbmc_project.Software.Sync.service.in'
 ]
+
+if get_option('updater-services').enabled()
+    unit_files += [
+        'xyz.openbmc_project.Software.BMC.Updater.service.in',
+        'xyz.openbmc_project.Software.Version.service.in'
+    ]
+endif
+
+if get_option('inventory-provider').enabled()
+    unit_files += [
+        'xyz.openbmc_project.Software.BMC.Inventory.service.in'
+    ]
+endif
 
 subdir('xyz/openbmc_project/Software/Image')
 
@@ -271,6 +283,13 @@ executable(
     dependencies: [deps, ssl],
     install: true
 )
+executable(
+    'phosphor-bmc-inventory',
+    'inventory_main.cpp',
+    'version.cpp',
+    dependencies: [deps, ssl],
+    install: true
+)
 
 install_data('obmc-flash-bmc',
     install_mode: 'rwxr-xr-x',
@@ -321,6 +340,7 @@ if not build_tests.disabled()
     endif
 
     gtest = dependency('gtest', main: true, disabler: true, required: build_tests)
+    gmock = dependency('gmock', main: true, disabler: true, required: build_tests)
     include_srcs = declare_dependency(sources: [
         'utils.cpp',
         'image_verify.cpp',
@@ -332,9 +352,10 @@ if not build_tests.disabled()
         executable(
             'utest',
             './test/utest.cpp',
+            './test/inventory_test.cpp',
             link_args: dynamic_linker,
             build_rpath: get_option('oe-sdk').enabled() ? rpath : '',
-            dependencies: [deps, gtest, include_srcs, ssl]
+            dependencies: [deps, gtest, gmock, include_srcs, ssl]
         )
 )
 endif
