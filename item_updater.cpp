@@ -503,17 +503,11 @@ void ItemUpdater::reset()
     constexpr auto setFactoryResetWait = std::chrono::seconds(3);
     helper.factoryReset();
 
-<<<<<<< HEAD
     // Need to wait for env variables to complete, otherwise an immediate reboot
     // will not factory reset.
     std::this_thread::sleep_for(setFactoryResetWait);
 
     log<level::INFO>("BMC factory reset will take effect upon reboot.");
-||||||| fa79914
-    log<level::INFO>("BMC factory reset will take effect upon reboot.");
-=======
-    info("BMC factory reset will take effect upon reboot.");
->>>>>>> origin/master
 }
 
 void ItemUpdater::removeReadOnlyPartition(std::string versionId)
