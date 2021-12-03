@@ -5,7 +5,7 @@
 
 #include <systemd/sd-event.h>
 
-#include <phosphor-logging/log.hpp>
+#include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server/manager.hpp>
 
@@ -31,10 +31,9 @@ int main()
         bus.attach_event(loop, SD_EVENT_PRIORITY_NORMAL);
         sd_event_loop(loop);
     }
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
-        using namespace phosphor::logging;
-        log<level::ERR>(e.what());
+        lg2::error("Error in event loop: {ERROR}", "ERROR", e);
         sd_event_unref(loop);
         return -1;
     }

@@ -5,9 +5,11 @@
 #include "msl_verify.hpp"
 #include "serialize.hpp"
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/post.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
-#include <phosphor-logging/log.hpp>
+#include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/exception.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 #include <xyz/openbmc_project/Software/Version/error.hpp>
@@ -15,6 +17,8 @@
 #ifdef WANT_SIGNATURE_VERIFY
 #include "image_verify.hpp"
 #endif
+
+extern boost::asio::io_context& getIOContext();
 
 namespace phosphor
 {
@@ -25,8 +29,8 @@ namespace updater
 
 namespace softwareServer = sdbusplus::xyz::openbmc_project::Software::server;
 
+PHOSPHOR_LOG2_USING;
 using namespace phosphor::logging;
-using sdbusplus::exception::SdBusError;
 using InternalFailure =
     sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
 
@@ -42,7 +46,7 @@ void Activation::subscribeToSystemdSignals()
     {
         this->bus.call_noreply(method);
     }
-    catch (const SdBusError& e)
+    catch (const sdbusplus::exception::exception& e)
     {
         if (e.name() != nullptr &&
             strcmp("org.freedesktop.systemd1.AlreadySubscribed", e.name()) == 0)
@@ -53,8 +57,7 @@ void Activation::subscribeToSystemdSignals()
         }
         else
         {
-            log<level::ERR>("Error subscribing to systemd",
-                            entry("ERROR=%s", e.what()));
+            error("Error subscribing to systemd: {ERROR}", "ERROR", e);
         }
     }
 
@@ -69,10 +72,9 @@ void Activation::unsubscribeFromSystemdSignals()
     {
         this->bus.call_noreply(method);
     }
-    catch (const SdBusError& e)
+    catch (const sdbusplus::exception::exception& e)
     {
-        log<level::ERR>("Error in unsubscribing from systemd signals",
-                        entry("ERROR=%s", e.what()));
+        error("Error unsubscribing from systemd signals: {ERROR}", "ERROR", e);
     }
 
     return;
@@ -88,6 +90,19 @@ auto Activation::activation(Activations value) -> Activations
 
     if (value == softwareServer::Activation::Activations::Activating)
     {
+#ifdef WANT_SIGNATURE_VERIFY
+        fs::path uploadDir(IMG_UPLOAD_DIR);
+        if (!verifySignature(uploadDir / versionId, SIGNED_IMAGE_CONF_PATH))
+        {
+            onVerifyFailed();
+            // Stop the activation process, if fieldMode is enabled.
+            if (parent.control::FieldMode::fieldModeEnabled())
+            {
+                return softwareServer::Activation::activation(
+                    softwareServer::Activation::Activations::Failed);
+            }
+        }
+#endif
 
 #ifdef HOST_BIOS_UPGRADE
         auto purpose = parent.versions.find(versionId)->second->purpose();
@@ -129,20 +144,6 @@ auto Activation::activation(Activations value) -> Activations
             return softwareServer::Activation::activation(
                 softwareServer::Activation::Activations::Failed);
         }
-
-#ifdef WANT_SIGNATURE_VERIFY
-        fs::path uploadDir(IMG_UPLOAD_DIR);
-        if (!verifySignature(uploadDir / versionId, SIGNED_IMAGE_CONF_PATH))
-        {
-            onVerifyFailed();
-            // Stop the activation process, if fieldMode is enabled.
-            if (parent.control::FieldMode::fieldModeEnabled())
-            {
-                return softwareServer::Activation::activation(
-                    softwareServer::Activation::Activations::Failed);
-            }
-        }
-#endif
 
         if (!activationProgress)
         {
@@ -216,13 +217,12 @@ void Activation::onFlashWriteSuccess()
 
     if (Activation::checkApplyTimeImmediate() == true)
     {
-        log<level::INFO>("Image Active. ApplyTime is immediate, "
-                         "rebooting BMC.");
+        info("Image Active and ApplyTime is immediate; rebooting BMC.");
         Activation::rebootBmc();
     }
     else
     {
-        log<level::INFO>("BMC image ready, need reboot to get activated.");
+        info("BMC image ready; need reboot to get activated.");
     }
 
     activation(softwareServer::Activation::Activations::Active);
@@ -238,10 +238,10 @@ void Activation::deleteImageManagerObject()
     {
         bus.call_noreply(method);
     }
-    catch (const SdBusError& e)
+    catch (const sdbusplus::exception::exception& e)
     {
-        log<level::ERR>("Error in Deleting image from image manager",
-                        entry("VERSIONPATH=%s", path.c_str()));
+        error("Error deleting image ({PATH}) from image manager: {ERROR}",
+              "PATH", path, "ERROR", e);
         return;
     }
 }
@@ -320,14 +320,14 @@ bool Activation::verifySignature(const fs::path& imageDir,
 
 void Activation::onVerifyFailed()
 {
-    log<level::ERR>("Error occurred during image validation");
+    error("Error occurred during image validation");
     report<InternalFailure>();
 }
 #endif
 
 void ActivationBlocksTransition::enableRebootGuard()
 {
-    log<level::INFO>("BMC image activating - BMC reboots are disabled.");
+    info("BMC image activating - BMC reboots are disabled.");
 
     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
                                       SYSTEMD_INTERFACE, "StartUnit");
@@ -337,7 +337,7 @@ void ActivationBlocksTransition::enableRebootGuard()
 
 void ActivationBlocksTransition::disableRebootGuard()
 {
-    log<level::INFO>("BMC activation has ended - BMC reboots are re-enabled.");
+    info("BMC activation has ended - BMC reboots are re-enabled.");
 
     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
                                       SYSTEMD_INTERFACE, "StartUnit");
@@ -350,10 +350,9 @@ bool Activation::checkApplyTimeImmediate()
     auto service = utils::getService(bus, applyTimeObjPath, applyTimeIntf);
     if (service.empty())
     {
-        log<level::INFO>("Error getting the service name for BMC image "
-                         "ApplyTime. The BMC needs to be manually rebooted to "
-                         "complete the image activation if needed "
-                         "immediately.");
+        info("Error getting the service name for BMC image ApplyTime. "
+             "The BMC needs to be manually rebooted to complete the image "
+             "activation if needed immediately.");
     }
     else
     {
@@ -374,10 +373,9 @@ bool Activation::checkApplyTimeImmediate()
                 return true;
             }
         }
-        catch (const SdBusError& e)
+        catch (const sdbusplus::exception::exception& e)
         {
-            log<level::ERR>("Error in getting ApplyTime",
-                            entry("ERROR=%s", e.what()));
+            error("Error in getting ApplyTime: {ERROR}", "ERROR", e);
         }
     }
     return false;
@@ -394,9 +392,9 @@ void Activation::flashWriteHost()
     {
         auto reply = bus.call(method);
     }
-    catch (const SdBusError& e)
+    catch (const sdbusplus::exception::exception& e)
     {
-        log<level::ERR>("Error in trying to upgrade Host Bios.");
+        error("Error in trying to upgrade Host Bios: {ERROR}", "ERROR", e);
         report<InternalFailure>();
     }
 }
@@ -420,23 +418,27 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
 
         if (newStateResult == "done")
         {
-            // Remove version object from image manager
-            deleteImageManagerObject();
-
             // Set activation progress to 100
             activationProgress->progress(100);
 
             // Set Activation value to active
             activation(softwareServer::Activation::Activations::Active);
 
-            log<level::INFO>("Bios upgrade completed successfully.");
+            info("Bios upgrade completed successfully.");
+            parent.biosVersion->version(
+                parent.versions.find(versionId)->second->version());
+
+            // Delete the uploaded activation
+            boost::asio::post(getIOContext(), [this]() {
+                this->parent.erase(this->versionId);
+            });
         }
         else if (newStateResult == "failed")
         {
             // Set Activation value to Failed
             activation(softwareServer::Activation::Activations::Failed);
 
-            log<level::ERR>("Bios upgrade failed.");
+            error("Bios upgrade failed.");
         }
     }
 
@@ -454,11 +456,11 @@ void Activation::rebootBmc()
     {
         auto reply = bus.call(method);
     }
-    catch (const SdBusError& e)
+    catch (const sdbusplus::exception::exception& e)
     {
-        log<level::ALERT>("Error in trying to reboot the BMC. "
-                          "The BMC needs to be manually rebooted to complete "
-                          "the image activation.");
+        alert("Error in trying to reboot the BMC. The BMC needs to be manually "
+              "rebooted to complete the image activation. {ERROR}",
+              "ERROR", e);
         report<InternalFailure>();
     }
 }
