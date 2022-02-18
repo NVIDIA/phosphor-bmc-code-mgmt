@@ -146,7 +146,8 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
 
         auto versionPtr = std::make_unique<VersionClass>(
             bus, path, version, purpose, extendedVersion, filePath,
-            std::bind(&ItemUpdater::erase, this, std::placeholders::_1));
+            std::bind(&ItemUpdater::erase, this, std::placeholders::_1),
+            versionId);
         versionPtr->deleteObject =
             std::make_unique<phosphor::software::manager::Delete>(bus, path,
                                                                   *versionPtr);
@@ -173,8 +174,8 @@ void ItemUpdater::processBMCImage()
         return;
     }
 
-    // Read os-release from /etc/ to get the functional BMC version
-    auto functionalVersion = VersionClass::getBMCVersion(OS_RELEASE_FILE);
+    // Functional images are mounted as rofs-<location>-functional
+    constexpr auto functionalSuffix = "-functional";
 
     // Read os-release from folders under /media/ to get
     // BMC Software Versions.
@@ -218,7 +219,10 @@ void ItemUpdater::processBMCImage()
                 continue;
             }
 
-            auto id = VersionClass::getId(version);
+            // The flash location is part of the mount name: rofs-<location>
+            auto flashId = iter.path().native().substr(BMC_RO_PREFIX_LEN);
+
+            auto id = VersionClass::getId(version + flashId);
 
             // Check if the id has already been added. This can happen if the
             // BMC partitions / devices were manually flashed with the same
@@ -228,8 +232,17 @@ void ItemUpdater::processBMCImage()
                 continue;
             }
 
+            auto functional = false;
+            if (iter.path().native().find(functionalSuffix) !=
+                std::string::npos)
+            {
+                // Set functional to true and remove the functional suffix
+                functional = true;
+                flashId.erase(flashId.length() - strlen(functionalSuffix));
+            }
+
             auto purpose = server::Version::VersionPurpose::BMC;
-            restorePurpose(id, purpose);
+            restorePurpose(flashId, purpose);
 
             // Read os-release from /etc/ to get the BMC extended version
             std::string extendedVersion =
@@ -239,7 +252,7 @@ void ItemUpdater::processBMCImage()
 
             // Create functional association if this is the functional
             // version
-            if (version.compare(functionalVersion) == 0)
+            if (functional)
             {
                 createFunctionalAssociation(path);
             }
@@ -263,10 +276,14 @@ void ItemUpdater::processBMCImage()
 
             // Create Version instance for this version.
             auto versionPtr = std::make_unique<VersionClass>(
-                bus, path, version, purpose, extendedVersion, "",
-                std::bind(&ItemUpdater::erase, this, std::placeholders::_1));
-            auto isVersionFunctional = versionPtr->isFunctional();
-            if (!isVersionFunctional)
+                bus, path, version, purpose, extendedVersion, flashId,
+                std::bind(&ItemUpdater::erase, this, std::placeholders::_1),
+                id);
+            if (functional)
+            {
+                versionPtr->setFunctional(true);
+            }
+            else
             {
                 versionPtr->deleteObject =
                     std::make_unique<phosphor::software::manager::Delete>(
@@ -284,9 +301,9 @@ void ItemUpdater::processBMCImage()
             if (activationState == server::Activation::Activations::Active)
             {
                 uint8_t priority = std::numeric_limits<uint8_t>::max();
-                if (!restorePriority(id, priority))
+                if (!restorePriority(flashId, priority))
                 {
-                    if (isVersionFunctional)
+                    if (functional)
                     {
                         priority = 0;
                     }
@@ -306,20 +323,22 @@ void ItemUpdater::processBMCImage()
     }
 
     // If there are no bmc versions mounted under MEDIA_DIR, then read the
-    // /etc/os-release and create rofs-<versionId> under MEDIA_DIR, then call
-    // again processBMCImage() to create the D-Bus interface for it.
+    // /etc/os-release and create rofs-<versionId>-functional under MEDIA_DIR,
+    // then call again processBMCImage() to create the D-Bus interface for it.
     if (activations.size() == 0)
     {
         auto version = VersionClass::getBMCVersion(OS_RELEASE_FILE);
-        auto id = phosphor::software::manager::Version::getId(version);
-        auto versionFileDir = BMC_ROFS_PREFIX + id + "/etc/";
+        auto id = phosphor::software::manager::Version::getId(version +
+                                                              functionalSuffix);
+        auto versionFileDir = BMC_ROFS_PREFIX + id + functionalSuffix + "/etc/";
         try
         {
             if (!fs::is_directory(versionFileDir))
             {
                 fs::create_directories(versionFileDir);
             }
-            auto versionFilePath = BMC_ROFS_PREFIX + id + OS_RELEASE_FILE;
+            auto versionFilePath =
+                BMC_ROFS_PREFIX + id + functionalSuffix + OS_RELEASE_FILE;
             fs::create_directory_symlink(OS_RELEASE_FILE, versionFilePath);
             ItemUpdater::processBMCImage();
         }
@@ -371,25 +390,20 @@ void ItemUpdater::erase(std::string entryId)
 
     if (it != versions.end())
     {
-        // Delete ReadOnly partitions if it's not active
-        removeReadOnlyPartition(entryId);
-        removePersistDataDirectory(entryId);
+        auto flashId = it->second->path();
+
+        // Delete version data if it has been installed on flash (path is not
+        // the upload directory)
+        if (flashId.find(IMG_UPLOAD_DIR) == std::string::npos)
+        {
+            removeReadOnlyPartition(entryId);
+            removePersistDataDirectory(flashId);
+            helper.clearEntry(flashId);
+        }
 
         // Removing entry in versions map
         this->versions.erase(entryId);
     }
-    else
-    {
-        // Delete ReadOnly partitions even if we can't find the version
-        removeReadOnlyPartition(entryId);
-        removePersistDataDirectory(entryId);
-
-        error(
-            "Failed to find version ({VERSIONID}) in item updater versions map; unable to remove.",
-            "VERSIONID", entryId);
-    }
-
-    helper.clearEntry(entryId);
 
     return;
 }
@@ -440,8 +454,9 @@ ItemUpdater::ActivationStatus
 
 void ItemUpdater::savePriority(const std::string& versionId, uint8_t value)
 {
-    storePriority(versionId, value);
-    helper.setEntry(versionId, value);
+    auto flashId = versions.find(versionId)->second->path();
+    storePriority(flashId, value);
+    helper.setEntry(flashId, value);
 }
 
 void ItemUpdater::freePriority(uint8_t value, const std::string& versionId)
@@ -512,7 +527,8 @@ void ItemUpdater::reset()
 
 void ItemUpdater::removeReadOnlyPartition(std::string versionId)
 {
-    helper.removeVersion(versionId);
+    auto flashId = versions.find(versionId)->second->path();
+    helper.removeVersion(flashId);
 }
 
 bool ItemUpdater::fieldModeEnabled(bool value)
@@ -648,7 +664,8 @@ bool ItemUpdater::isLowestPriority(uint8_t value)
 
 void ItemUpdater::updateUbootEnvVars(const std::string& versionId)
 {
-    helper.updateUbootVersionId(versionId);
+    auto flashId = versions.find(versionId)->second->path();
+    helper.updateUbootVersionId(flashId);
 }
 
 void ItemUpdater::resetUbootEnvVars()
@@ -780,7 +797,7 @@ void ItemUpdater::createBIOSObject()
     };
     biosVersion = std::make_unique<VersionClass>(
         bus, path, version, VersionPurpose::Host, "", "",
-        std::bind(dummyErase, std::placeholders::_1));
+        std::bind(dummyErase, std::placeholders::_1), "");
     biosVersion->deleteObject =
         std::make_unique<phosphor::software::manager::Delete>(bus, path,
                                                               *biosVersion);
