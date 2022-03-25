@@ -176,6 +176,7 @@ void ItemUpdater::processBMCImage()
 
     // Functional images are mounted as rofs-<location>-functional
     constexpr auto functionalSuffix = "-functional";
+    bool functionalFound = false;
 
     // Read os-release from folders under /media/ to get
     // BMC Software Versions.
@@ -193,6 +194,11 @@ void ItemUpdater::processBMCImage()
             auto osRelease = iter.path() / releaseFile.relative_path();
             if (!fs::is_regular_file(osRelease))
             {
+#ifdef BMC_STATIC_DUAL_IMAGE
+                // For dual image, it is possible that the secondary image is
+                // empty or contains invalid data, ignore such case.
+                info("Unable to find osRelease: {PATH}", "PATH", osRelease);
+#else
                 error("Failed to read osRelease: {PATH}", "PATH", osRelease);
 
                 // Try to get the version id from the mount directory name and
@@ -202,6 +208,7 @@ void ItemUpdater::processBMCImage()
                 // erase() is called with an non-existent id and returns.
                 auto id = iter.path().native().substr(BMC_RO_PREFIX_LEN);
                 ItemUpdater::erase(id);
+#endif
 
                 continue;
             }
@@ -239,6 +246,7 @@ void ItemUpdater::processBMCImage()
                 // Set functional to true and remove the functional suffix
                 functional = true;
                 flashId.erase(flashId.length() - strlen(functionalSuffix));
+                functionalFound = true;
             }
 
             auto purpose = server::Version::VersionPurpose::BMC;
@@ -296,6 +304,22 @@ void ItemUpdater::processBMCImage()
                 id, std::make_unique<Activation>(
                         bus, path, *this, id, activationState, associations)));
 
+#ifdef BMC_STATIC_DUAL_IMAGE
+            uint8_t priority;
+            if ((functional && (runningImageSlot == 0)) ||
+                (!functional && (runningImageSlot == 1)))
+            {
+                priority = 0;
+            }
+            else
+            {
+                priority = 1;
+            }
+            activations.find(id)->second->redundancyPriority =
+                std::make_unique<RedundancyPriority>(
+                    bus, path, *(activations.find(id)->second), priority,
+                    false);
+#else
             // If Active, create RedundancyPriority instance for this
             // version.
             if (activationState == server::Activation::Activations::Active)
@@ -319,14 +343,15 @@ void ItemUpdater::processBMCImage()
                         bus, path, *(activations.find(id)->second), priority,
                         false);
             }
+#endif
         }
     }
 
-    // If there are no bmc versions mounted under MEDIA_DIR, then read the
-    // /etc/os-release and create rofs-<versionId>-functional under MEDIA_DIR,
-    // then call again processBMCImage() to create the D-Bus interface for it.
-    if (activations.size() == 0)
+    if (!functionalFound)
     {
+        // If there is no functional version found, read the /etc/os-release and
+        // create rofs-<versionId>-functional under MEDIA_DIR, then call again
+        // processBMCImage() to create the D-Bus interface for it.
         auto version = VersionClass::getBMCVersion(OS_RELEASE_FILE);
         auto id = phosphor::software::manager::Version::getId(version +
                                                               functionalSuffix);
@@ -664,7 +689,12 @@ bool ItemUpdater::isLowestPriority(uint8_t value)
 
 void ItemUpdater::updateUbootEnvVars(const std::string& versionId)
 {
-    auto flashId = versions.find(versionId)->second->path();
+    auto it = versions.find(versionId);
+    if (it == versions.end())
+    {
+        return;
+    }
+    auto flashId = it->second->path();
     helper.updateUbootVersionId(flashId);
 }
 
@@ -692,8 +722,29 @@ void ItemUpdater::resetUbootEnvVars()
     updateUbootEnvVars(lowestPriorityVersion);
 }
 
-void ItemUpdater::freeSpace(const Activation& caller)
+void ItemUpdater::freeSpace([[maybe_unused]] const Activation& caller)
 {
+#ifdef BMC_STATIC_DUAL_IMAGE
+    // For the golden image case, always remove the version on the primary side
+    std::string versionIDtoErase;
+    for (const auto& iter : activations)
+    {
+        if (iter.second->redundancyPriority &&
+            iter.second->redundancyPriority.get()->priority() == 0)
+        {
+            versionIDtoErase = iter.second->versionId;
+            break;
+        }
+    }
+    if (!versionIDtoErase.empty())
+    {
+        erase(versionIDtoErase);
+    }
+    else
+    {
+        warning("Failed to find version to erase");
+    }
+#else
     //  Versions with the highest priority in front
     std::priority_queue<std::pair<int, std::string>,
                         std::vector<std::pair<int, std::string>>,
@@ -744,6 +795,7 @@ void ItemUpdater::freeSpace(const Activation& caller)
         versionsPQ.pop();
         count--;
     }
+#endif
 }
 
 void ItemUpdater::mirrorUbootToAlt()
@@ -803,6 +855,14 @@ void ItemUpdater::createBIOSObject()
                                                               *biosVersion);
 }
 #endif
+
+void ItemUpdater::getRunningSlot()
+{
+    // Check /run/media/slot to get the slot number
+    constexpr auto slotFile = "/run/media/slot";
+    std::fstream f(slotFile, std::ios_base::in);
+    f >> runningImageSlot;
+}
 
 } // namespace updater
 } // namespace software

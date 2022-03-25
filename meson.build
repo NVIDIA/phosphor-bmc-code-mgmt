@@ -52,8 +52,6 @@ conf.set_quoted('UPDATEABLE_FWD_ASSOCIATION', 'updateable')
 conf.set_quoted('UPDATEABLE_REV_ASSOCIATION', 'software_version')
 
 # Filesystem files and directories
-# The path of the alt rwfs overlay
-conf.set_quoted('ALT_RWFS', '/media/alt/var/persist')
 # The prefix path for the versioned read-only bmc partitions
 conf.set_quoted('BMC_ROFS_PREFIX', get_option('media-dir') + '/rofs-')
 # The name of the BMC table of contents file
@@ -97,25 +95,22 @@ if get_option('host-bios-upgrade').enabled()
     conf.set_quoted('BIOS_OBJPATH', get_option('bios-object-path'))
 endif
 
+if get_option('bmc-static-dual-image').enabled()
+  conf.set('BMC_STATIC_DUAL_IMAGE', get_option('bmc-static-dual-image').enabled())
+  conf.set_quoted('ALT_ROFS_DIR', get_option('alt-rofs-dir'))
+  conf.set_quoted('ALT_RWFS', get_option('alt-rwfs-dir'))
+else
+  conf.set_quoted('ALT_RWFS', '/media/alt/var/persist')
+endif
+
 configure_file(output: 'config.h', configuration: conf)
 
-sdbusplus_dep = dependency('sdbusplus', required: false)
-sdbusplus_proj = dependency('', required: false)
-if not sdbusplus_dep.found() or sdbusplus_dep.type_name() == 'internal'
-    sdbusplus_proj = subproject('sdbusplus')
-endif
-if not sdbusplus_dep.found()
-    sdbusplus_dep = sdbusplus_proj.get_variable('sdbusplus_dep')
-endif
+sdbusplus_dep = dependency('sdbusplus')
+sdbusplusplus_prog = find_program('sdbus++', native: true)
+sdbuspp_gen_meson_prog = find_program('sdbus++-gen-meson', native: true)
 
-if sdbusplus_proj.found()
-    sdbusplusplus_prog = sdbusplus_proj.get_variable('sdbusplusplus_prog')
-    sdbuspp_gen_meson_prog = sdbusplus_proj.get_variable(
-        'sdbuspp_gen_meson_prog')
-else
-    sdbusplusplus_prog = find_program('sdbus++', native: true)
-    sdbuspp_gen_meson_prog = find_program('sdbus++-gen-meson', native: true)
-endif
+pdi_dep = dependency('phosphor-dbus-interfaces')
+phosphor_logging_dep = dependency('phosphor-logging')
 
 cereal_dep = dependency('cereal', required: false)
 has_cereal = cpp.has_header_symbol(
@@ -135,16 +130,10 @@ if not has_cereal
 endif
 
 deps = [
-    dependency(
-        'phosphor-dbus-interfaces',
-        fallback: ['phosphor-dbus-interfaces', 'phosphor_dbus_interfaces_dep'],
-    ),
-    dependency(
-        'phosphor-logging',
-        fallback: ['phosphor-logging', 'phosphor_logging_dep'],
-    ),
-    sdbusplus_dep,
     cereal_dep,
+    pdi_dep,
+    phosphor_logging_dep,
+    sdbusplus_dep,
 ]
 
 ssl = dependency('openssl')
@@ -217,6 +206,14 @@ if get_option('host-bios-upgrade').enabled()
     unit_files += 'obmc-flash-host-bios@.service.in'
 endif
 
+if get_option('bmc-static-dual-image').enabled()
+    unit_files += [
+        'static/obmc-flash-bmc-alt@.service.in',
+        'static/obmc-flash-bmc-static-mount-alt.service.in',
+        'static/obmc-flash-bmc-prepare-for-sync.service.in',
+    ]
+endif
+
 if get_option('sync-bmc-files').enabled()
     executable(
         'phosphor-sync-software-manager',
@@ -229,6 +226,11 @@ if get_option('sync-bmc-files').enabled()
 
     install_data('synclist',
         install_dir:  get_option('sysconfdir')
+    )
+
+    install_data('sync-once.sh',
+        install_mode: 'rwxr-xr-x',
+        install_dir: get_option('bindir')
     )
 endif
 
@@ -271,6 +273,16 @@ executable(
 )
 
 install_data('obmc-flash-bmc',
+    install_mode: 'rwxr-xr-x',
+    install_dir: get_option('bindir')
+)
+
+install_data('detect-slot-aspeed',
+    install_mode: 'rwxr-xr-x',
+    install_dir: get_option('bindir')
+)
+
+install_data('reset-cs0-aspeed',
     install_mode: 'rwxr-xr-x',
     install_dir: get_option('bindir')
 )

@@ -104,29 +104,6 @@ auto Activation::activation(Activations value) -> Activations
         }
 #endif
 
-#ifdef HOST_BIOS_UPGRADE
-        auto purpose = parent.versions.find(versionId)->second->purpose();
-        if (purpose == VersionPurpose::Host)
-        {
-            if (!activationProgress)
-            {
-                activationProgress =
-                    std::make_unique<ActivationProgress>(bus, path);
-            }
-
-            // Enable systemd signals
-            subscribeToSystemdSignals();
-
-            // Set initial progress
-            activationProgress->progress(20);
-
-            // Initiate image writing to flash
-            flashWriteHost();
-
-            return softwareServer::Activation::activation(value);
-        }
-#endif
-
         auto versionStr = parent.versions.find(versionId)->second->version();
 
         if (!minimum_ship_level::verify(versionStr))
@@ -157,6 +134,23 @@ auto Activation::activation(Activations value) -> Activations
                 std::make_unique<ActivationBlocksTransition>(bus, path);
         }
 
+#ifdef HOST_BIOS_UPGRADE
+        auto purpose = parent.versions.find(versionId)->second->purpose();
+        if (purpose == VersionPurpose::Host)
+        {
+            // Enable systemd signals
+            subscribeToSystemdSignals();
+
+            // Set initial progress
+            activationProgress->progress(20);
+
+            // Initiate image writing to flash
+            flashWriteHost();
+
+            return softwareServer::Activation::activation(value);
+        }
+#endif
+
         activationProgress->progress(10);
 
         parent.freeSpace(*this);
@@ -172,9 +166,14 @@ auto Activation::activation(Activations value) -> Activations
 
 #else // STATIC_LAYOUT
 
-        onFlashWriteSuccess();
-        return softwareServer::Activation::activation(
-            softwareServer::Activation::Activations::Active);
+        if (parent.runningImageSlot == 0)
+        {
+            // On primary, update it as before
+            onFlashWriteSuccess();
+            return softwareServer::Activation::activation(
+                softwareServer::Activation::Activations::Active);
+        }
+        // On secondary, wait for the service to complete
 #endif
     }
     else
