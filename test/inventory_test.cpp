@@ -25,6 +25,16 @@ using ::testing::StartsWith;
 TEST(InventoryTest, InventoryManager) {
     sdbusplus::SdBusMock sdbus_mock;
     auto bus_mock = sdbusplus::get_mocked_new(&sdbus_mock);
+
+EXPECT_CALL(sdbus_mock,
+        sd_bus_emit_properties_changed_strv(IsNull(), StartsWith("/xyz/openbmc_project/software/"),
+                                            StrEq("xyz.openbmc_project.Association.Definitions"), NotNull()))
+    .Times(1).WillRepeatedly(Invoke(
+        [=](sd_bus*, const char*, const char*, const char** names) {
+            EXPECT_STREQ("Associations", names[0]);
+            return 0;
+        }));
+
 EXPECT_CALL(sdbus_mock,
         sd_bus_emit_properties_changed_strv(IsNull(), StartsWith("/xyz/openbmc_project/software/"),
                                             StrEq("xyz.openbmc_project.Software.Version"), NotNull()))

@@ -50,6 +50,8 @@ class InventoryManager
 
         versionPtr = std::make_unique<VersionInventoryEntry>(
             bus, path, version);
+
+        versionPtr->createUpdateableAssociation(SOFTWARE_OBJPATH);
     }
 
   private:

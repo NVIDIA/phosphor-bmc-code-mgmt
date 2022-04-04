@@ -21,7 +21,6 @@ namespace server = sdbusplus::xyz::openbmc_project::Software::server;
 
 using VersionInventoryEntryInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Software::server::Version,
-    sdbusplus::xyz::openbmc_project::server::Association,
     sdbusplus::xyz::openbmc_project::Association::server::Definitions>;
 
 /**
@@ -31,6 +30,8 @@ using VersionInventoryEntryInherit = sdbusplus::server::object::object<
 class VersionInventoryEntry : public VersionInventoryEntryInherit
 {
   public:
+    const std::string updateableFwdAssociation = "software_version";
+    const std::string updateableRevAssociation = "updateable";
     /**
      * @brief Construct a new Version Extended object
      *
@@ -39,7 +40,7 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
      * @param versionString string representation of the version
      */
     VersionInventoryEntry(sdbusplus::bus::bus& bus, const std::string& objPath,
-                    const std::string& versionString) :
+                          const std::string& versionString) :
         VersionInventoryEntryInherit(bus, (objPath).c_str(), true)
     {
         // Set properties.
@@ -47,6 +48,14 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
         version(versionString);
         emit_object_added();
     };
+
+    void createUpdateableAssociation(const std::string& p)
+    {
+        auto assocs = associations();
+        assocs.emplace_back(std::make_tuple(updateableFwdAssociation,
+                                            updateableRevAssociation, p));
+        associations(assocs);
+    }
 };
 
 } // namespace manager
