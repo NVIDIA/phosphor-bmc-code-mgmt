@@ -287,6 +287,7 @@ executable(
     'phosphor-bmc-inventory',
     'inventory_main.cpp',
     'version.cpp',
+    'utils.cpp',
     dependencies: [deps, ssl],
     install: true
 )
