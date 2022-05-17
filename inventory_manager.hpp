@@ -60,6 +60,7 @@ class InventoryManager : public InventoryManagerInherit
         versionPtr = std::make_unique<VersionInventoryEntry>(
             bus, path, version);
 
+        versionPtr->createFunctionalAssociation(SOFTWARE_OBJPATH);
         versionPtr->createUpdateableAssociation(SOFTWARE_OBJPATH);
     }
     

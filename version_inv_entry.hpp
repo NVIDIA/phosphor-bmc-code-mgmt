@@ -56,6 +56,20 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
                                             updateableRevAssociation, p));
         associations(assocs);
     }
+
+    /**
+     * @brief Create a Functional Association. This property is required for
+     *        redfish Manager resource to update firmware inventory reference.
+     *
+     * @param[in] p - The D-Bus object path
+     */
+    void createFunctionalAssociation(const std::string& p)
+    {
+        auto assocs = associations();
+        assocs.emplace_back(std::make_tuple(FUNCTIONAL_REV_ASSOCIATION,
+                                            FUNCTIONAL_FWD_ASSOCIATION, p));
+        associations(assocs);
+    }
 };
 
 } // namespace manager
