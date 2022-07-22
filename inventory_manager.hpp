@@ -37,7 +37,7 @@ class InventoryManager : public InventoryManagerInherit
      * @param[in/out] bus dbus service
      */
     InventoryManager(sdbusplus::bus::bus& bus) :
-        InventoryManagerInherit(bus, SOFTWARE_OBJPATH, false), bus(bus)
+        InventoryManagerInherit(bus, SOFTWARE_OBJPATH, InventoryManagerInherit::action::defer_emit), bus(bus)
     {
         readExistingVersion();
     }

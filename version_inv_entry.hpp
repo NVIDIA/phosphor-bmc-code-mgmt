@@ -41,7 +41,7 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
      */
     VersionInventoryEntry(sdbusplus::bus::bus& bus, const std::string& objPath,
                           const std::string& versionString) :
-        VersionInventoryEntryInherit(bus, (objPath).c_str(), true)
+        VersionInventoryEntryInherit(bus, (objPath).c_str(), VersionInventoryEntryInherit::action::defer_emit)
     {
         // Set properties.
         purpose(server::Version::VersionPurpose::BMC);
