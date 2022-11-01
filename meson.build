@@ -91,6 +91,7 @@ conf.set_quoted('SYNC_LIST_FILE_NAME', get_option('sync-list-file-name'))
 conf.set_quoted('BMC_MSL', get_option('bmc-msl'))
 conf.set_quoted('REGEX_BMC_MSL', get_option('regex-bmc-msl'))
 conf.set_quoted('FIRMWARE_INV_NAME', get_option('firmware-inventory-name'))
+conf.set_quoted('PLATFORM_BMC_ID', get_option('platform-bmc-id'))
 
 if get_option('host-bios-upgrade').enabled()
     conf.set_quoted('BIOS_OBJPATH', get_option('bios-object-path'))

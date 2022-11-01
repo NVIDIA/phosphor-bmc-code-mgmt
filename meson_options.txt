@@ -141,3 +141,9 @@ option(
     value: '',
     description: 'Name for FW inventory item, if empty will use FW id',
 )
+
+option(
+    'platform-bmc-id', type: 'string',
+    value: '',
+    description: 'Name for BMC inventory item. Id should match with Chassis Id for BMC. If this value is empty, hash of VERSION_ID from /etc/os-release will be used.',
+)

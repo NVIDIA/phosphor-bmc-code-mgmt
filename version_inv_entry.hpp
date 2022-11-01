@@ -32,6 +32,8 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
   public:
     const std::string updateableFwdAssociation = "software_version";
     const std::string updateableRevAssociation = "updateable";
+    const std::string invFwdAssociation = "inventory";
+    const std::string invRevAssociation = "activation";
     /**
      * @brief Construct a new Version Extended object
      *
@@ -68,6 +70,20 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
         auto assocs = associations();
         assocs.emplace_back(std::make_tuple(FUNCTIONAL_REV_ASSOCIATION,
                                             FUNCTIONAL_FWD_ASSOCIATION, p));
+        associations(assocs);
+    }
+
+    /**
+     * @brief Create a inventory forward Association. This property is required
+     * for redfish firmware inventory resource to update related item.
+     *
+     * @param[in] p - The D-Bus object path
+     */
+    void createForwardAssociation(const std::string& p)
+    {
+        auto assocs = associations();
+        assocs.emplace_back(
+            std::make_tuple(invFwdAssociation, invRevAssociation, p));
         associations(assocs);
     }
 };

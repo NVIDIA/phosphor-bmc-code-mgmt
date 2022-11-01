@@ -74,6 +74,14 @@ class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit
 
         versionPtr->createFunctionalAssociation(SOFTWARE_OBJPATH);
         versionPtr->createUpdateableAssociation(SOFTWARE_OBJPATH);
+        std::string platformBMCId = PLATFORM_BMC_ID;
+        if (platformBMCId.length() == 0)
+        {
+            platformBMCId = id;
+        }
+        auto chassisPath =
+            "/xyz/openbmc_project/inventory/system/bmc/" + platformBMCId;
+        versionPtr->createForwardAssociation(chassisPath);
     }
     
     /** @brief BMC factory reset - marks the read-write partition for
