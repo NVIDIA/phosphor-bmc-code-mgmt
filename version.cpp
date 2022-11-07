@@ -158,7 +158,7 @@ std::string Version::getBMCExtendedVersion(const std::string& releaseFilePath)
 
 std::string Version::getBMCVersion(const std::string& releaseFilePath)
 {
-    std::string versionKey = "VERSION_ID=";
+    std::string versionKey = "VERSION=";
     std::string versionValue{};
     std::string version{};
     std::ifstream efile;

@@ -85,7 +85,7 @@ TEST_F(VersionTest, TestGetVersionWithQuotes)
     file.open(releasePath, std::ofstream::out);
     ASSERT_TRUE(file.is_open());
 
-    file << "VERSION_ID=\"" << version << "\"\n";
+    file << "VERSION=\"" << version << "\"\n";
     file.close();
 
     EXPECT_EQ(Version::getBMCVersion(releasePath), version);
@@ -100,7 +100,7 @@ TEST_F(VersionTest, TestGetVersionWithoutQuotes)
     file.open(releasePath, std::ofstream::out);
     ASSERT_TRUE(file.is_open());
 
-    file << "VERSION_ID=" << version << "\n";
+    file << "VERSION=" << version << "\n";
     file.close();
 
     EXPECT_EQ(Version::getBMCVersion(releasePath), version);
