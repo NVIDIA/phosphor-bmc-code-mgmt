@@ -1,0 +1,80 @@
+#!/bin/bash
+# Get the mtd device number (mtdX)
+findmtd() {
+  m="$(grep -xl "$1" /sys/class/mtd/*/name)"
+  m="${m%/name}"
+  m="${m##*/}"
+  echo "${m}"
+}
+
+# Get the mtd device number only (return X of mtdX)
+findmtdnum() {
+  m="$(findmtd "$1")"
+  m="${m##mtd}"
+  echo "${m}"
+}
+
+mtd_write() {
+  #To enable the staging flash access on BMC.
+
+  #To enable the inactive flash access on BMC.
+  echo "1e620000.spi" > /sys/bus/platform/drivers/aspeed-smc/unbind
+  echo "1e620000.spi" > /sys/bus/platform/drivers/aspeed-smc/bind
+ 
+  sleep 3
+
+  file_buffer="/tmp/images/${version}/buffer_64k"
+  dd if=/dev/zero of=$file_buffer bs=1024 count=64
+  new_img_file="/tmp/images/${version}/new_image"
+
+  flashmtd="$(findmtd "${reqmtd}")"
+  img="/tmp/images/${version}/${imgfile}"
+
+  if [ ! -e "$file_buffer" ]; then
+    echo "nvidia-secure-update: File $file_buffer not exists"
+    exit 1
+  fi
+
+  if [ ! -e "$img" ]; then
+    echo "nvidia-secure-update: File $img not exists"
+    exit 1
+  fi
+
+  #We write the actual BMC image starting from the 64K offset.
+  #This helps CEC in improving the overall read/write performance.
+  cat $file_buffer $img > $new_img_file
+
+  if [ ! -e "$new_img_file" ]; then
+    echo "nvidia-secure-update: File $new_img_file not exists"
+    exit 1
+  fi
+
+  if test ! -s $new_img_file
+  then
+    echo "nvidia-secure-update: Skipping empty update of $new_img_file}."
+    exit 1
+  fi
+
+  if [ "x$flashmtd" == "x" ]; then
+      echo "nvidia-secure-update: parition not found"
+      exit 1
+  fi
+ 
+
+  echo "nvidia-secure-update: updating image $new_img_file to partition $/dev/${flashmtd}."
+
+  flashcp -v ${new_img_file} /dev/${flashmtd}
+  ret_code=$?
+
+  echo "nvidia-secure-update: copy image $new_img_file to partition $/dev/${flashmtd} completed."
+
+  echo "1e620000.spi" > /sys/bus/platform/drivers/aspeed-smc/unbind
+  exit $ret_code
+}
+
+version=$1
+imgfile="image-bmc"
+reqmtd="bmc"
+
+mtd_write
+

@@ -1,0 +1,7 @@
+[Unit]
+Description=Copy the image %I to staging ROM.
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/obmc-secure-copy-image %i

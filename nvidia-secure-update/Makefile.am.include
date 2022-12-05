@@ -1,0 +1,74 @@
+noinst_HEADERS += \
+        %reldir%/state_machine_context.hpp \
+	%reldir%/state_machine.hpp \
+	%reldir%/pris_state_machine.hpp \
+	%reldir%/i2c_interface.hpp \
+	%reldir%/i2c.hpp \
+	%reldir%/i2c_comm_lib.hpp \
+	utils.cpp \
+	%reldir%/pris_ap_fw_state_machine.hpp \
+	%reldir%/ap_fw_updater.hpp
+
+bin_PROGRAMS += \
+	nvidia-secure-monitor \
+	nvidia-fw-updater \
+	nvidia-secure-copier \
+	nvidia-fw-tool
+
+dist_bin_SCRIPTS += \
+	%reldir%/obmc-secure-copy-image
+
+phosphor_image_updater_SOURCES += \
+        %reldir%/state_machine_context.cpp \
+	%reldir%/flash.cpp \
+	%reldir%/item_updater_helper.cpp \
+	%reldir%/state_machine.cpp \
+	%reldir%/pris_state_machine.cpp \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp
+
+nvidia_secure_monitor_SOURCES = \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp \
+	%reldir%/secure_monitor.cpp
+
+nvidia_fw_updater_SOURCES = \
+	%reldir%/state_machine_context.cpp \
+	%reldir%/state_machine.cpp \
+	%reldir%/ap_fw_updater.cpp \
+	%reldir%/pris_ap_fw_state_machine.cpp \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp \
+	watch.cpp \
+	utils.cpp \
+	%reldir%/ap_fw_updater_main.cpp
+
+nvidia_secure_copier_SOURCES = \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp \
+	%reldir%/nvidia_copy_image.cpp
+
+nvidia_fw_tool_SOURCES = \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp \
+	%reldir%/nvidia_fw_services.cpp
+
+if HAVE_SYSTEMD
+systemdsystemunit_DATA += \
+	%reldir%/obmc-secure-copy-image@.service \
+        %reldir%/nvidia-secure-block-copy@.service \
+	%reldir%/nvidia-secure-monitor.service \
+	%reldir%/nvidia_ap_fw_updater.service \
+        %reldir%/nvidia-reboot.service \
+        %reldir%/reboot-guard-disable.service \
+        %reldir%/reboot-guard-enable.service
+endif
+
+nvidia_secure_monitor_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS) -lgpiodcxx
+nvidia_secure_monitor_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lsdeventplus -lstdplus
+nvidia_fw_updater_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
+nvidia_fw_updater_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus
+nvidia_secure_copier_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
+nvidia_secure_copier_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus
+nvidia_fw_tool_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
+nvidia_fw_tool_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus

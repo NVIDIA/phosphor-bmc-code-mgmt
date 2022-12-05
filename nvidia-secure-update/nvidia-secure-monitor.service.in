@@ -1,0 +1,11 @@
+[Unit]
+Description=Nvidia secure update service
+After=multi-user.target
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/nvidia-secure-monitor 
+SyslogIdentifier=nvidia-secure-monitor
+
+[Install]
+WantedBy=multi-user.target

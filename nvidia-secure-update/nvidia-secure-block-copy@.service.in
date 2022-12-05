@@ -1,0 +1,17 @@
+# This service shall be started with two arguments:
+#  * F/W Filename to be copied
+#  * Actual size of the F/W
+# E.g.
+#  "nvidia-secure-block-copy@\\x2D"+"f\\x20"+imgFileName+"\\x20\\x2Ds\\x20"+ imgFileSize +".service"
+# expands to
+#  /usr/bin/nvidia-secure-copier -f /tmp/cec_images/cec_fw_file.bin -s 12345
+
+[Unit]
+Description=Copy the image to CEC.
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+Environment="ARGS=%I"
+ExecStart=/usr/bin/nvidia-secure-copier $ARGS
+SyslogIdentifier=nvidia-secure-copier

@@ -1,0 +1,11 @@
+[Unit]
+Description=Nvidia ap secure fw update service
+After=multi-user.target
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/nvidia-fw-updater
+SyslogIdentifier=nvidia-fw-updater
+
+[Install]
+WantedBy=multi-user.target
