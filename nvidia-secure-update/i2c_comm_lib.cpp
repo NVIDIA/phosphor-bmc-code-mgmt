@@ -234,6 +234,29 @@ uint8_t I2CCommLib::GetFWUpdateStatus()
     return retVal;
 }
 
+void I2CCommLib::GetCecVersion(ReadCecVersion& readStruct)
+{
+    uint8_t deviceOffset = FIRMWARE_VERSION_REG;
+    std::vector<uint8_t> buf(sizeof(readStruct), 0);
+
+    memcpy(&buf[0], &readStruct, sizeof(readStruct));
+    try
+    {
+        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr, true);
+        auto size = buf.size();
+        myDevice->readCustom(deviceOffset, size, &buf[0]);
+        memcpy(&readStruct, &buf[0], sizeof(readStruct));
+    }
+    catch (const std::exception& e)
+    {
+        std::string msg = "GetCecVersion: ";
+        msg += e.what();
+        log<level::ERR>("I2CCommLib - GetCecVersion command failed.",
+                        entry("EXCEPTION=%s", msg.c_str()));
+    }
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // WRITE Calls
 

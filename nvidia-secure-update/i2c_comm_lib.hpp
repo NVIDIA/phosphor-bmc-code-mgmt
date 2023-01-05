@@ -86,6 +86,17 @@ class I2CCommLib
     virtual uint8_t QueryAboutInterrupt();
 
     virtual uint8_t GetFWUpdateStatus();
+  
+    /** @struct ReadCecVersion
+     *  @brief CEC version details.
+     */
+    struct ReadCecVersion
+    {
+        uint8_t major;
+        uint8_t minor;
+    } __attribute__((packed));
+
+    virtual void GetCecVersion(ReadCecVersion& version);
 
     virtual void SendBMCReset();
 
@@ -185,6 +196,7 @@ class I2CCommLib
     static constexpr uint8_t RD_FW_UPDATE_REG{0x05};
     static constexpr uint8_t WR_DEVICE_REG{0x03};
     static constexpr uint8_t CHALLENGE_RESPONSE_REG{0x06};
+    static constexpr uint8_t FIRMWARE_VERSION_REG{0x01};
 
     static constexpr uint8_t EMPTY{0x00};
     static constexpr uint8_t CEC_VERSION_MAJOR{0x01};

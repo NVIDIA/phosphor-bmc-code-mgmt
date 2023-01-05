@@ -1,13 +1,31 @@
 #include "config.h"
 
 #include "pris_ap_fw_state_machine.hpp"
-
 #include "ap_fw_updater.hpp"
 #include "watch.hpp"
+#include "i2c_comm_lib.hpp"
+#include "version_inv_entry.hpp"
 
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/server/manager.hpp>
 #include <phosphor-logging/log.hpp>
+
+#include <filesystem>
+
+static constexpr auto busIdentifier = CEC_BUS_IDENTIFIER;
+static constexpr auto deviceAddrress = CEC_DEVICE_ADDRESS;
+
+using namespace phosphor::logging;
+
+
+static std::string getCecVersion(void)
+{
+    std::unique_ptr<phosphor::software::updater::I2CCommLib> deviceLayer = std::make_unique<phosphor::software::updater::I2CCommLib>(
+        CEC_BUS_IDENTIFIER, CEC_DEVICE_ADDRESS);
+    phosphor::software::updater::I2CCommLib::ReadCecVersion version;
+    deviceLayer->GetCecVersion(version);
+    return std::to_string(version.major) + "-" + std::to_string(version.minor);
+}
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[])
 {
@@ -21,9 +39,14 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[])
 
     try
     {
-        using namespace phosphor::logging;
-        phosphor::software::firmwareupdater::UpdateManager imageManager(bus);
+        bus.request_name("xyz.openbmc_project.Software.BMC.Nvidia.Updater");
 
+        std::unique_ptr<phosphor::software::manager::VersionInventoryEntry> versionPtr = std::make_unique<phosphor::software::manager::VersionInventoryEntry>(
+            bus, std::filesystem::path(SOFTWARE_OBJPATH) / "BF_CEC", getCecVersion());
+        versionPtr->createFunctionalAssociation(SOFTWARE_OBJPATH);
+        versionPtr->createUpdateableAssociation(SOFTWARE_OBJPATH);
+
+        phosphor::software::firmwareupdater::UpdateManager imageManager(bus);
         if(ENABLE_GPU_IB_UPDATE)
         {
             watchGPU = std::make_unique<phosphor::software::manager::Watch>(
@@ -40,7 +63,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[])
     }
     catch (std::exception& e)
     {
-        using namespace phosphor::logging;
         log<level::ERR>(e.what());
         return -1;
     }
