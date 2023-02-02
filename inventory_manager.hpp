@@ -92,6 +92,9 @@ class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit
         // Mark the read-write partition for recreation upon reboot.
         utils::execute("/sbin/fw_setenv", "openbmconce", "factory-reset");
 
+        // used to create a RF log upon reboot 
+        utils::execute("/sbin/fw_setenv", "openbmclog", "factory-reset");
+
         // Need to wait for env variables to complete, otherwise an immediate reboot
         // will not factory reset.
         std::this_thread::sleep_for(setFactoryResetWait);
@@ -106,6 +109,9 @@ class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit
         constexpr auto setCompleteResetWait = std::chrono::seconds(3);
         // Mark the read-write partition for recreation upon reboot.
         utils::execute("/sbin/fw_setenv", "openbmconce", "complete-reset");
+
+        // used to create a RF log upon reboot 
+        utils::execute("/sbin/fw_setenv", "openbmclog", "logs-reset");        
 
         // Need to wait for env variables to complete, otherwise an immediate reboot
         // will not factory reset.
