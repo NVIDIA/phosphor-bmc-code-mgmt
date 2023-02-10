@@ -4,6 +4,8 @@
 
 #include <sys/mount.h>
 
+#include <system_error>
+
 namespace phosphor
 {
 namespace usb
@@ -11,8 +13,9 @@ namespace usb
 
 bool USBManager::run()
 {
+    std::error_code ec;
     fs::path dir(usbPath);
-    fs::create_directories(dir);
+    fs::create_directories(dir, ec);
 
     auto rc = mount(devicePath.c_str(), usbPath.c_str(), "vfat", 0, NULL);
     if (rc)
@@ -27,7 +30,7 @@ bool USBManager::run()
         if (p.path().extension() == ".tar")
         {
             fs::path dstPath{IMG_UPLOAD_DIR / p.path().filename()};
-            if (fs::exists(dstPath))
+            if (fs::exists(dstPath, ec))
             {
                 lg2::info(
                     "{DSTPATH} already exists in the /tmp/images directory, exit the upgrade",
@@ -90,7 +93,7 @@ void USBManager::setRequestedActivation(const std::string& path)
     return;
 }
 
-void USBManager::updateActivation(sdbusplus::message::message& msg)
+void USBManager::updateActivation(sdbusplus::message_t& msg)
 {
     std::map<std::string, std::map<std::string, std::variant<std::string>>>
         interfaces;
@@ -109,9 +112,9 @@ void USBManager::updateActivation(sdbusplus::message::message& msg)
 
         try
         {
-            auto propVal =
-                utils::getProperty(bus, path.str, imageInterface, "Activation");
-            const auto& imageProp = std::get<std::string>(propVal);
+            auto imageProp = utils::getProperty<std::string>(
+                bus, path.str, imageInterface, "Activation");
+
             if (imageProp == readyPro && isUSBCodeUpdate)
             {
                 setApplyTime();

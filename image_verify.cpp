@@ -18,6 +18,7 @@
 #include <cassert>
 #include <fstream>
 #include <set>
+#include <system_error>
 
 namespace phosphor
 {
@@ -44,6 +45,12 @@ Signature::Signature(const fs::path& imageDirPath,
 
     keyType = Version::getValue(file, keyTypeTag);
     hashType = Version::getValue(file, hashFunctionTag);
+
+    // Get purpose
+    auto purposeString = Version::getValue(file, "purpose");
+    auto convertedPurpose =
+        sdbusplus::message::convert_from_string<VersionPurpose>(purposeString);
+    purpose = convertedPurpose.value_or(Version::VersionPurpose::Unknown);
 }
 
 AvailableKeyTypes Signature::getAvailableKeyTypesFromSystem() const
@@ -51,9 +58,11 @@ AvailableKeyTypes Signature::getAvailableKeyTypesFromSystem() const
     AvailableKeyTypes keyTypes{};
 
     // Find the path of all the files
-    if (!fs::is_directory(signedConfPath))
+    std::error_code ec;
+    if (!fs::is_directory(signedConfPath, ec))
     {
-        error("Signed configuration path not found in the system");
+        error("Signed configuration path not found in the system: {ERROR_MSG}",
+              "ERROR_MSG", ec.message());
         elog<InternalFailure>();
     }
 
@@ -92,6 +101,12 @@ bool Signature::verifyFullImage()
 {
     bool ret = true;
 #ifdef WANT_SIGNATURE_FULL_VERIFY
+    // Only verify full image for BMC
+    if (purpose != VersionPurpose::BMC)
+    {
+        return ret;
+    }
+
     std::vector<std::string> fullImages = {
         fs::path(imageDirPath) / "image-bmc.sig",
         fs::path(imageDirPath) / "image-hostfw.sig",
@@ -117,7 +132,9 @@ bool Signature::verifyFullImage()
     fs::path publicKeyFile(imageDirPath / PUBLICKEY_FILE_NAME);
 
     ret = verifyFile(pkeyFullFile, pkeyFullFileSig, publicKeyFile, hashType);
-    fs::remove(tmpFullFile);
+
+    std::error_code ec;
+    fs::remove(tmpFullFile, ec);
 #endif
 
     return ret;
@@ -174,7 +191,8 @@ bool Signature::verify()
             fs::path file(imageDirPath);
             file /= optionalImage;
 
-            if (fs::exists(file))
+            std::error_code ec;
+            if (fs::exists(file, ec))
             {
                 optionalFilesFound = true;
                 // Build Signature File name
@@ -285,10 +303,11 @@ bool Signature::verifyFile(const fs::path& file, const fs::path& sigFile,
 {
 
     // Check existence of the files in the system.
-    if (!(fs::exists(file) && fs::exists(sigFile)))
+    std::error_code ec;
+    if (!(fs::exists(file, ec) && fs::exists(sigFile, ec)))
     {
-        error("Failed to find the Data or signature file {PATH}.", "PATH",
-              file);
+        error("Failed to find the Data or signature file {PATH}: {ERROR_MSG}",
+              "PATH", file, "ERROR_MSG", ec.message());
         elog<InternalFailure>();
     }
 
@@ -326,7 +345,7 @@ bool Signature::verifyFile(const fs::path& file, const fs::path& sigFile,
     }
 
     // Hash the data file and update the verification context
-    auto size = fs::file_size(file);
+    auto size = fs::file_size(file, ec);
     auto dataPtr = mapFile(file, size);
 
     result = EVP_DigestVerifyUpdate(rsaVerifyCtx.get(), dataPtr(), size);
@@ -338,7 +357,7 @@ bool Signature::verifyFile(const fs::path& file, const fs::path& sigFile,
     }
 
     // Verify the data with signature.
-    size = fs::file_size(sigFile);
+    size = fs::file_size(sigFile, ec);
     auto signature = mapFile(sigFile, size);
 
     result = EVP_DigestVerifyFinal(
@@ -364,7 +383,8 @@ bool Signature::verifyFile(const fs::path& file, const fs::path& sigFile,
 
 inline EVP_PKEY_Ptr Signature::createPublicRSA(const fs::path& publicKey)
 {
-    auto size = fs::file_size(publicKey);
+    std::error_code ec;
+    auto size = fs::file_size(publicKey, ec);
 
     // Read public key file
     auto data = mapFile(publicKey, size);
@@ -402,7 +422,8 @@ bool Signature::checkAndVerifyImage(const std::string& filePath,
         fs::path file(filePath);
         file /= bmcImage;
 
-        if (!fs::exists(file))
+        std::error_code ec;
+        if (!fs::exists(file, ec))
         {
             valid = false;
             break;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xyz/openbmc_project/Common/FilePath/server.hpp"
+#include "xyz/openbmc_project/Inventory/Decorator/Compatible/server.hpp"
 #include "xyz/openbmc_project/Object/Delete/server.hpp"
 #include "xyz/openbmc_project/Software/ExtendedVersion/server.hpp"
 #include "xyz/openbmc_project/Software/Version/server.hpp"
@@ -9,6 +10,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace phosphor
 {
@@ -19,11 +21,12 @@ namespace manager
 
 typedef std::function<void(std::string)> eraseFunc;
 
-using VersionInherit = sdbusplus::server::object::object<
+using VersionInherit = sdbusplus::server::object_t<
     sdbusplus::xyz::openbmc_project::Software::server::ExtendedVersion,
     sdbusplus::xyz::openbmc_project::Software::server::Version,
-    sdbusplus::xyz::openbmc_project::Common::server::FilePath>;
-using DeleteInherit = sdbusplus::server::object::object<
+    sdbusplus::xyz::openbmc_project::Common::server::FilePath,
+    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Compatible>;
+using DeleteInherit = sdbusplus::server::object_t<
     sdbusplus::xyz::openbmc_project::Object::server::Delete>;
 
 class Version;
@@ -43,7 +46,7 @@ class Delete : public DeleteInherit
      *  @param[in] path   - The D-Bus object path
      *  @param[in] parent - Parent object.
      */
-    Delete(sdbusplus::bus::bus& bus, const std::string& path, Version& parent) :
+    Delete(sdbusplus::bus_t& bus, const std::string& path, Version& parent) :
         DeleteInherit(bus, path.c_str(), action::emit_interface_added),
         parent(parent)
     {
@@ -68,19 +71,22 @@ class Version : public VersionInherit
   public:
     /** @brief Constructs Version Software Manager
      *
-     * @param[in] bus            - The D-Bus bus object
-     * @param[in] objPath        - The D-Bus object path
-     * @param[in] versionString  - The version string
-     * @param[in] versionPurpose - The version purpose
-     * @param[in] extVersion     - The extended version
-     * @param[in] filePath       - The image filesystem path
-     * @param[in] callback       - The eraseFunc callback
+     * @param[in] bus             - The D-Bus bus object
+     * @param[in] objPath         - The D-Bus object path
+     * @param[in] versionString   - The version string
+     * @param[in] versionPurpose  - The version purpose
+     * @param[in] extVersion      - The extended version
+     * @param[in] filePath        - The image filesystem path
+     * @param[in] compatibleNames - The device compatibility names
+     * @param[in] callback        - The eraseFunc callback
      */
-    Version(sdbusplus::bus::bus& bus, const std::string& objPath,
+    Version(sdbusplus::bus_t& bus, const std::string& objPath,
             const std::string& versionString, VersionPurpose versionPurpose,
             const std::string& extVersion, const std::string& filePath,
-            eraseFunc callback, const std::string& id) :
-        VersionInherit(bus, (objPath).c_str(), VersionInherit::action::defer_emit),
+            const std::vector<std::string>& compatibleNames, eraseFunc callback,
+            const std::string& id) :
+        VersionInherit(bus, (objPath).c_str(),
+                       VersionInherit::action::defer_emit),
         eraseCallback(callback), id(id), versionStr(versionString)
     {
         // Set properties.
@@ -88,6 +94,7 @@ class Version : public VersionInherit
         purpose(versionPurpose);
         version(versionString);
         path(filePath);
+        names(compatibleNames);
         // Emit deferred signal.
         emit_object_added();
     }
@@ -99,6 +106,14 @@ class Version : public VersionInherit
      **/
     static std::string getValue(const std::string& manifestFilePath,
                                 std::string key);
+
+    /**
+     * @brief Read the manifest file to get the values of the repeated key.
+     *
+     * @return The values of the repeated key.
+     **/
+    static std::vector<std::string>
+        getRepeatedValues(const std::string& manifestFilePath, std::string key);
 
     /**
      * @brief Calculate the version id from the version string.

@@ -19,7 +19,7 @@
 #include <queue>
 #include <set>
 #include <string>
-#include <thread>
+#include <system_error>
 
 namespace phosphor
 {
@@ -39,7 +39,7 @@ using namespace phosphor::software::image;
 namespace fs = std::filesystem;
 using NotAllowed = sdbusplus::xyz::openbmc_project::Common::Error::NotAllowed;
 
-void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+void ItemUpdater::createActivation(sdbusplus::message_t& msg)
 {
 
     using SVersion = server::Version;
@@ -50,11 +50,14 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
     auto purpose = VersionPurpose::Unknown;
     std::string extendedVersion;
     std::string version;
-    std::map<std::string, std::map<std::string, std::variant<std::string>>>
+    std::map<std::string,
+             std::map<std::string,
+                      std::variant<std::string, std::vector<std::string>>>>
         interfaces;
     msg.read(objPath, interfaces);
     std::string path(std::move(objPath));
     std::string filePath;
+    std::vector<std::string> compatibleNames;
 
     for (const auto& intf : interfaces)
     {
@@ -101,6 +104,17 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
                 }
             }
         }
+        else if (intf.first == COMPATIBLE_IFACE)
+        {
+            for (const auto& property : intf.second)
+            {
+                if (property.first == "Names")
+                {
+                    compatibleNames =
+                        std::get<std::vector<std::string>>(property.second);
+                }
+            }
+        }
     }
     if (version.empty() || filePath.empty() ||
         purpose == VersionPurpose::Unknown)
@@ -141,6 +155,7 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
 
         auto versionPtr = std::make_unique<VersionClass>(
             bus, path, version, purpose, extendedVersion, filePath,
+            compatibleNames,
             std::bind(&ItemUpdater::erase, this, std::placeholders::_1),
             versionId);
         versionPtr->deleteObject =
@@ -180,7 +195,8 @@ void ItemUpdater::processBMCImage()
 
     // Read os-release from folders under /media/ to get
     // BMC Software Versions.
-    for (const auto& iter : fs::directory_iterator(MEDIA_DIR))
+    std::error_code ec;
+    for (const auto& iter : fs::directory_iterator(MEDIA_DIR, ec))
     {
         auto activationState = server::Activation::Activations::Active;
         static const auto BMC_RO_PREFIX_LEN = strlen(BMC_ROFS_PREFIX);
@@ -192,14 +208,16 @@ void ItemUpdater::processBMCImage()
             // Get the version to calculate the id
             fs::path releaseFile(OS_RELEASE_FILE);
             auto osRelease = iter.path() / releaseFile.relative_path();
-            if (!fs::is_regular_file(osRelease))
+            if (!fs::is_regular_file(osRelease, ec))
             {
 #ifdef BMC_STATIC_DUAL_IMAGE
                 // For dual image, it is possible that the secondary image is
                 // empty or contains invalid data, ignore such case.
-                info("Unable to find osRelease: {PATH}", "PATH", osRelease);
+                info("Unable to find osRelease: {PATH}: {ERROR_MSG}", "PATH",
+                     osRelease, "ERROR_MSG", ec.message());
 #else
-                error("Failed to read osRelease: {PATH}", "PATH", osRelease);
+                error("Failed to read osRelease: {PATH}: {ERROR_MSG}", "PATH",
+                      osRelease, "ERROR_MSG", ec.message());
 
                 // Try to get the version id from the mount directory name and
                 // call to delete it as this version may be corrupted. Dynamic
@@ -285,6 +303,7 @@ void ItemUpdater::processBMCImage()
             // Create Version instance for this version.
             auto versionPtr = std::make_unique<VersionClass>(
                 bus, path, version, purpose, extendedVersion, flashId,
+                std::vector<std::string>(),
                 std::bind(&ItemUpdater::erase, this, std::placeholders::_1),
                 id);
             if (functional)
@@ -592,11 +611,20 @@ bool ItemUpdater::fieldModeEnabled(bool value)
 
 void ItemUpdater::restoreFieldModeStatus()
 {
-    std::ifstream input("/dev/mtd/u-boot-env");
-    std::string envVar;
-    std::getline(input, envVar);
+    // The fieldmode u-boot environment variable may not exist since it is not
+    // part of the default environment, run fw_printenv with 2>&1 to ignore the
+    // error message in the journal "Error: "fieldmode" not defined"
+    std::pair<int, std::string> ret =
+        utils::execute("/sbin/fw_printenv", "-n", "fieldmode", "2>&1");
 
-    if (envVar.find("fieldmode=true") != std::string::npos)
+    if (ret.first != 0)
+    {
+        return;
+    }
+
+    // truncate any extra characters off the end to compare against a "true" str
+    std::string result = ret.second.substr(0, 4);
+    if (result == "true")
     {
         ItemUpdater::fieldModeEnabled(true);
     }
@@ -626,7 +654,7 @@ void ItemUpdater::setBMCInventoryPath()
             bmcInventoryPath = result.front();
         }
     }
-    catch (const sdbusplus::exception::exception& e)
+    catch (const sdbusplus::exception_t& e)
     {
         error("Error in mapper GetSubTreePath: {ERROR}", "ERROR", e);
         return;
@@ -849,6 +877,7 @@ void ItemUpdater::createBIOSObject()
     };
     biosVersion = std::make_unique<VersionClass>(
         bus, path, version, VersionPurpose::Host, "", "",
+        std::vector<std::string>(),
         std::bind(dummyErase, std::placeholders::_1), "");
     biosVersion->deleteObject =
         std::make_unique<phosphor::software::manager::Delete>(bus, path,

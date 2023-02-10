@@ -16,7 +16,7 @@ using PropertyValue = std::variant<std::string>;
  *
  * @return the bus service as a string
  **/
-std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
+std::string getService(sdbusplus::bus_t& bus, const std::string& path,
                        const std::string& interface);
 
 /** @brief Get property(type: variant)
@@ -28,12 +28,28 @@ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
  *
  *  @return The value of the property(type: variant)
  *
- *  @throw sdbusplus::exception::exception when it fails
+ *  @throw sdbusplus::exception_t when it fails
  */
-const PropertyValue getProperty(sdbusplus::bus::bus& bus,
-                                const std::string& objectPath,
-                                const std::string& interface,
-                                const std::string& propertyName);
+template <typename T>
+T getProperty(sdbusplus::bus_t& bus, const std::string& objectPath,
+              const std::string& interface, const std::string& propertyName)
+{
+    std::variant<T> value{};
+    auto service = getService(bus, objectPath, interface);
+    if (service.empty())
+    {
+        return std::get<T>(value);
+    }
+
+    auto method = bus.new_method_call(service.c_str(), objectPath.c_str(),
+                                      "org.freedesktop.DBus.Properties", "Get");
+    method.append(interface, propertyName);
+
+    auto reply = bus.call(method);
+    reply.read(value);
+
+    return std::get<T>(value);
+}
 
 /** @brief Set D-Bus property
  *
@@ -43,9 +59,9 @@ const PropertyValue getProperty(sdbusplus::bus::bus& bus,
  *  @param[in] propertyName     -   D-Bus property name
  *  @param[in] value            -   The value to be set
  *
- *  @throw sdbusplus::exception::exception when it fails
+ *  @throw sdbusplus::exception_t when it fails
  */
-void setProperty(sdbusplus::bus::bus& bus, const std::string& objectPath,
+void setProperty(sdbusplus::bus_t& bus, const std::string& objectPath,
                  const std::string& interface, const std::string& propertyName,
                  const PropertyValue& value);
 
@@ -80,11 +96,10 @@ constexpr auto constructArgv(const char* name, Arg&&... args)
 
 /**
  * @brief Helper function to execute command in child process
- * @param[in] path - Fully qualified name of the executable to run
- * @param[in] args - Optional arguments
- * @return 0 on success
+ * @param[in] args - Executable plus optional arguments
+ * @return 0 and command output on success
  */
-int executeCmd(const char* path, char** args);
+std::pair<int, std::string> executeCmd(char** args);
 
 } // namespace internal
 
@@ -92,14 +107,14 @@ int executeCmd(const char* path, char** args);
  * @brief Execute command in child process
  * @param[in] path - Fully qualified name of the executable to run
  * @param[in] args - Optional arguments
- * @return 0 on success
+ * @return 0 and command output on success
  */
 template <typename... Arg>
-int execute(const char* path, Arg&&... args)
+std::pair<int, std::string> execute(const char* path, Arg&&... args)
 {
     auto argArray = internal::constructArgv(path, std::forward<Arg>(args)...);
 
-    return internal::executeCmd(path, argArray.data());
+    return internal::executeCmd(argArray.data());
 }
 
 } // namespace utils

@@ -40,6 +40,7 @@ conf.set_quoted('SYSTEMD_INTERFACE', 'org.freedesktop.systemd1.Manager')
 conf.set_quoted('VERSION_BUSNAME', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('VERSION_IFACE', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('EXTENDED_VERSION_IFACE', 'xyz.openbmc_project.Software.ExtendedVersion')
+conf.set_quoted('COMPATIBLE_IFACE', 'xyz.openbmc_project.Inventory.Decorator.Compatible')
 
 # Names of the forward and reverse associations
 conf.set_quoted('ACTIVATION_FWD_ASSOCIATION', 'inventory')
@@ -212,6 +213,7 @@ elif get_option('bmc-layout').contains('mmc')
         'mmc/obmc-flash-mmc-remove@.service.in',
         'mmc/obmc-flash-mmc-setprimary@.service.in',
         'mmc/obmc-flash-mmc-umount.service.in',
+        'mmc/obmc-flash-mmc-mirroruboot.service.in',
     ]
 endif
 
@@ -326,21 +328,6 @@ endforeach
 # need to define and build the tests from here
 build_tests = get_option('tests')
 if not build_tests.disabled()
-    oe_sdk = get_option('oe-sdk')
-    if oe_sdk.enabled()
-        # Setup OE SYSROOT
-        OECORE_TARGET_SYSROOT = run_command('sh', '-c', 'echo $OECORE_TARGET_SYSROOT').stdout().strip()
-        if OECORE_TARGET_SYSROOT == ''
-            error('Unable to get $OECORE_TARGET_SYSROOT, check your environment.')
-        endif
-        message('OE_SYSROOT: ' + OECORE_TARGET_SYSROOT)
-        rpath = ':'.join([OECORE_TARGET_SYSROOT + '/lib', OECORE_TARGET_SYSROOT + '/usr/lib'])
-        ld_so = run_command('sh', '-c', 'find ' + OECORE_TARGET_SYSROOT + '/lib/ld-*.so | sort -r -n | head -n1').stdout().strip()
-        dynamic_linker = ['-Wl,-dynamic-linker,' + ld_so]
-    else
-        dynamic_linker = []
-    endif
-
     gtest = dependency('gtest', main: true, disabler: true, required: build_tests)
     gmock = dependency('gmock', main: true, disabler: true, required: build_tests)
     include_srcs = declare_dependency(sources: [
@@ -354,14 +341,15 @@ if not build_tests.disabled()
         executable(
             'utest',
             './test/utest.cpp',
-            './test/inventory_test.cpp',
-            link_args: dynamic_linker,
-            build_rpath: get_option('oe-sdk').enabled() ? rpath : '',
-            dependencies: [deps, gtest, gmock, include_srcs, ssl]
+            dependencies: [deps, gtest, include_srcs, ssl]
         )
 )
 endif
 
 if get_option('usb-code-update').enabled()
     subdir('usb')
+endif
+
+if get_option('side-switch-on-boot').enabled()
+    subdir('side-switch')
 endif

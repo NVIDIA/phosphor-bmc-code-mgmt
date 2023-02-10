@@ -17,8 +17,6 @@ option('sync-bmc-files', type: 'feature', value: 'enabled',
 
 option('tests', type: 'feature', description: 'Build tests')
 
-option('oe-sdk', type: 'feature', description: 'Enable OE SDK')
-
 option('verify-signature', type: 'feature', value: 'enabled',
     description: 'LEGACY: Use verify-full-signature instead. Enable image signature validation.')
 
@@ -35,6 +33,11 @@ option('updater-services', type: 'feature', value: 'enabled',
 
 option('inventory-provider', type: 'feature', value: 'disabled',
     description: 'Install the inventory service')
+
+option(
+    'side-switch-on-boot', type: 'feature', value: 'enabled',
+    description: 'Automatic flash side switch on boot',
+)
 
 # Variables
 option(

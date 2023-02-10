@@ -9,7 +9,7 @@ namespace utils
 
 PHOSPHOR_LOG2_USING;
 
-std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
+std::string getService(sdbusplus::bus_t& bus, const std::string& path,
                        const std::string& interface)
 {
     auto method = bus.new_method_call(MAPPER_BUSNAME, MAPPER_PATH,
@@ -32,7 +32,7 @@ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
             return std::string{};
         }
     }
-    catch (const sdbusplus::exception::exception& e)
+    catch (const sdbusplus::exception_t& e)
     {
         error("Error in mapper method call for ({PATH}, {INTERFACE}: {ERROR}",
               "ERROR", e, "PATH", path, "INTERFACE", interface);
@@ -41,29 +41,7 @@ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
     return response[0].first;
 }
 
-const PropertyValue getProperty(sdbusplus::bus::bus& bus,
-                                const std::string& objectPath,
-                                const std::string& interface,
-                                const std::string& propertyName)
-{
-    PropertyValue value{};
-    auto service = getService(bus, objectPath, interface);
-    if (service.empty())
-    {
-        return value;
-    }
-
-    auto method = bus.new_method_call(service.c_str(), objectPath.c_str(),
-                                      "org.freedesktop.DBus.Properties", "Get");
-    method.append(interface, propertyName);
-
-    auto reply = bus.call(method);
-    reply.read(value);
-
-    return value;
-}
-
-void setProperty(sdbusplus::bus::bus& bus, const std::string& objectPath,
+void setProperty(sdbusplus::bus_t& bus, const std::string& objectPath,
                  const std::string& interface, const std::string& propertyName,
                  const PropertyValue& value)
 {
@@ -110,54 +88,35 @@ namespace internal
 {
 
 /* @brief Helper function to build a string from command arguments */
-static std::string buildCommandStr(const char* name, char** args)
+static std::string buildCommandStr(char** args)
 {
-    std::string command = name;
+    std::string command = "";
     for (int i = 0; args[i]; i++)
     {
-        command += " ";
         command += args[i];
+        command += " ";
     }
     return command;
 }
 
-int executeCmd(const char* path, char** args)
+std::pair<int, std::string> executeCmd(char** args)
 {
-    pid_t pid = fork();
-    if (pid == 0)
+    std::array<char, 512> buffer;
+    std::string cmd = buildCommandStr(args);
+    std::stringstream result;
+    int rc;
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe)
     {
-        execv(path, args);
-
-        // execv only retruns on err
-        auto err = errno;
-        auto command = buildCommandStr(path, args);
-        error("Failed ({ERRNO}) to execute command: {COMMAND}", "ERRNO", err,
-              "COMMAND", command);
-        return -1;
+        error("Failed to execute command: {COMMAND}", "COMMAND", cmd);
+        return {-1, std::string{}};
     }
-    else if (pid > 0)
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
     {
-        int status;
-        if (waitpid(pid, &status, 0) < 0)
-        {
-            error("Error ({ERRNO}) during waitpid.", "ERRNO", errno);
-            return -1;
-        }
-        else if (WEXITSTATUS(status) != 0)
-        {
-            auto command = buildCommandStr(path, args);
-            error("Error ({STATUS}) occurred when executing command: {COMMAND}",
-                  "STATUS", status, "COMMAND", command);
-            return -1;
-        }
+        result << buffer.data();
     }
-    else
-    {
-        error("Error ({ERRNO}) during fork.", "ERRNO", errno);
-        return -1;
-    }
-
-    return 0;
+    rc = pclose(pipe);
+    return {rc, result.str()};
 }
 
 } // namespace internal
