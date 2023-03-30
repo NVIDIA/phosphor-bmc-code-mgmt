@@ -150,3 +150,9 @@ option(
     value: '',
     description: 'Name for BMC inventory item. Id should match with Chassis Id for BMC. If this value is empty, hash of VERSION_ID from /etc/os-release will be used.',
 )
+
+option(
+    'bmc-software-manufacturer', type: 'string',
+    value: '',
+    description: 'Name of BMC Software Manufacturer.',
+)

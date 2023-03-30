@@ -59,6 +59,8 @@ conf.set_quoted('BMC_ROFS_PREFIX', get_option('media-dir') + '/rofs-')
 conf.set_quoted('OS_RELEASE_FILE', '/etc/os-release')
 # The dir where activation data is stored in files
 conf.set_quoted('PERSIST_DIR', '/var/lib/phosphor-bmc-code-mgmt/')
+# The name of the bmc software manufacturer
+conf.set_quoted('BMC_SOFTWARE_MANUFACTURER', get_option('bmc-software-manufacturer'))
 
 # Supported BMC layout types
 conf.set('STATIC_LAYOUT', get_option('bmc-layout').contains('static'))
