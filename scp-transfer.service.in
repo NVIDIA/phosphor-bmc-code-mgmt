@@ -1,0 +1,7 @@
+[Unit]
+Description=SCP Transfer Service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/scp-transfer
