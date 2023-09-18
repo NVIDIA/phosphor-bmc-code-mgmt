@@ -151,6 +151,9 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
         return;
     }
 
+    // Clean the previous status
+    updateStatusProperties(sourceFilePath, target, Status::None);
+
     if (sourceFilePath.empty())
     {
         error("sourceFilePath is empty");
@@ -325,10 +328,12 @@ std::string Download::generateSelfKeyPair()
     fs::create_directories(fs::path(selfKeyFilePath).parent_path());
     if (!fs::exists(selfKeyFilePath))
     {
+        // If the key does not exist, create it
         command = "dropbearkey -t ed25519 -f ~/.ssh/id_dropbear";
     }
     else
     {
+        // If the key already exists, print it
         command = "dropbearkey -y -f ~/.ssh/id_dropbear";
     }
 
