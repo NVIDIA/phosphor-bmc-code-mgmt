@@ -116,7 +116,7 @@ while true; do
 done
 
 if [ -z "$transferStatus" ]; then
-    transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
+    transferStatus="xyz.openbmc_project.Common.SCP.Status.Failed"
 fi
 
 # Set TransferStatus properties
