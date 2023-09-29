@@ -317,11 +317,6 @@ install_data('software.conf',
     install_dir: '/usr/lib/tmpfiles.d/'
 )
 
-install_data('scp-transfer',
-    install_mode: 'rwxr-xr-x',
-    install_dir: get_option('bindir')
-)
-
 foreach u : unit_files
     configure_file(
         input: u,

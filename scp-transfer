@@ -1,27 +1,4 @@
 #!/bin/bash
-# SCP Transfer Script
-# This script facilitates file transfers using SCP (Secure Copy Protocol).
-# It reads configuration details from an args file, initiates the transfer,
-# monitors the progress, and updates the transfer status.
-
-# Args File Format:
-#   serverAddress=<address>
-#   username=<username>
-#   sourceFilePath=<source_path>
-#   target=<target_path>
-
-# Function to update DBus properties
-update_dbus_properties() {
-    local filename="$1"
-    local target="$2"
-    local transferStatus="$3"
-
-    echo "Filename: $filename  Target: $target  Status: $transferStatus"
-
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP FileName s "$filename"
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP Target s "$target"
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s "$transferStatus"
-}
 
 log_file="/tmp/scp.log"
 args_file="/tmp/scp.args"
@@ -46,23 +23,10 @@ done <<< "$cmd_content"
 # Check if any required variable is empty
 if [ -z "$serverAddress" ] || [ -z "$username" ] || [ -z "$sourceFilePath" ] || [ -z "$target" ]; then
     echo "One or more required variables are empty"
-    update_dbus_properties "$sourceFilePath" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
-    exit 0
+    exit 1
 fi
 
 filename=$(basename "$sourceFilePath")
-
-if [[ ! $filename =~ ^[a-zA-Z0-9_.-]+$ ]]; then
-   echo "Invalid characters in filename: $filename Please provide a valid filename."
-   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
-   exit 0
-fi
-
-if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
-   echo "Invalid characters in target: $target. Please provide a valid path."
-   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
-   exit 0
-fi
 
 # Save original file descriptors
 exec 3<&0  # Save stdin to file descriptor 3
@@ -76,7 +40,7 @@ scp_pid=$! # Store the PID of the scp process
 
 # Wait for status indications in the log file
 timeout=5  # seconds
-intervals=0.1 # check the log file every 100 miliseconds
+intervals=0.1
 
 # Set start and end times
 start_time=$(date +%s)
@@ -106,9 +70,6 @@ while true; do
     # Check if end time has been reached
     current_time=$(date +%s)
     if [ "$current_time" -ge "$end_time" ]; then
-        echo "SCP process has timed out. Killing it."
-        kill "$scp_pid"
-        wait "$scp_pid"  # Wait for the process to finish cleaning up
         break
     fi
 
@@ -120,7 +81,9 @@ if [ -z "$transferStatus" ]; then
 fi
 
 # Set TransferStatus properties
-update_dbus_properties "$filename" "$target" "$transferStatus"
+busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP FileName s $filename
+busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP Target s $target
+busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s $transferStatus
 
 # Restore original file descriptors
 exec 0<&3  # Restore stdin from file descriptor 3
@@ -138,6 +101,5 @@ if [ "$transfer_started" = true ]; then
     # When transferring files, the transfer may succeed, but an "Invalid Argument"
     # error is generated at the end.
     transferStatus="xyz.openbmc_project.Common.SCP.Status.Completed"
-    echo "Transfer completed"
     busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s $transferStatus
 fi
