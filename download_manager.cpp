@@ -4,18 +4,19 @@
 
 #include "xyz/openbmc_project/Common/error.hpp"
 
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/lg2.hpp>
 
-#include <algorithm>
+#include <sdbusplus/bus.hpp>
+#include <sdbusplus/bus/match.hpp>
+
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <system_error>
+#include <fstream>
 
 namespace phosphor
 {
@@ -28,6 +29,12 @@ using namespace sdbusplus::xyz::openbmc_project::Common::Error;
 PHOSPHOR_LOG2_USING;
 using namespace phosphor::logging;
 namespace fs = std::filesystem;
+
+sdbusplus::bus::bus bus = sdbusplus::bus::new_default();
+
+constexpr auto scpArgsFile = "/tmp/scp.args";
+constexpr auto scpTransferService = "scp-transfer";
+constexpr auto knownHostsFilePath = "/home/root/.ssh/known_hosts";
 
 void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
 {
@@ -62,11 +69,9 @@ void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
 
     // Check if IMAGE DIR exists
     fs::path imgDirPath(IMG_UPLOAD_DIR);
-    std::error_code ec;
-    if (!fs::is_directory(imgDirPath, ec))
+    if (!fs::is_directory(imgDirPath))
     {
-        error("Image Dir {PATH} does not exist: {ERROR_MSG}", "PATH",
-              imgDirPath, "ERROR_MSG", ec.message());
+        error("Image Dir {PATH} does not exist", "PATH", imgDirPath);
         elog<InternalFailure>();
         return;
     }
@@ -118,6 +123,246 @@ void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
     }
 
     return;
+}
+
+bool isScpTransferServiceRunning()
+{
+    // Use the 'pgrep' command to check if the scp-transfer service is running
+    std::string command = "pgrep " + std::string(scpTransferService);
+    int result = std::system(command.c_str());
+
+    // If 'pgrep' returns 0, the service is running
+    if (result == 0)
+        return true;
+
+    return false;
+}
+
+void Download::downloadViaSCP(std::string serverAddress, std::string username,
+                              std::string sourceFilePath, std::string target)
+{
+    using Argument = xyz::openbmc_project::Common::InvalidArgument;
+    std::string fileName = sourceFilePath;
+
+    if (isScpTransferServiceRunning())
+    {
+        error("SCP tranfer is already in progress");
+        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(("SCP tranfer is already in progress")));
+        return;
+    }
+
+    if (sourceFilePath.empty())
+    {
+        error("sourceFilePath is empty");
+        updateStatusProperties(sourceFilePath, target, Status::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("sourceFilePath"),
+                              Argument::ARGUMENT_VALUE(sourceFilePath.c_str()));
+        return;
+    }
+
+    // Find the last occurrence of the directory separator character
+    size_t lastSeparatorPos = sourceFilePath.find_last_of("/");
+    if (lastSeparatorPos != std::string::npos)
+    {
+        // Extract the substring after the last separator position
+        fileName = sourceFilePath.substr(lastSeparatorPos + 1);
+    }
+
+    if (serverAddress.empty())
+    {
+        error("ServerAddress is empty");
+        updateStatusProperties(fileName, target, Status::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("ServerAddress"),
+                              Argument::ARGUMENT_VALUE(serverAddress.c_str()));
+        return;
+    }
+
+    if (target.empty())
+    {
+        error("Target is empty");
+        updateStatusProperties(fileName, target, Status::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
+                              Argument::ARGUMENT_VALUE(target.c_str()));
+        return;
+    }
+
+    if (!fs::exists(target))
+    {
+        error("Target does not exist");
+        updateStatusProperties(fileName, target, Status::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
+                              Argument::ARGUMENT_VALUE(target.c_str()));
+	    return;
+    }
+
+    if (username.empty())
+    {
+        error("Username is empty");
+        updateStatusProperties(fileName, target, Status::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("username"),
+                              Argument::ARGUMENT_VALUE(username.c_str()));
+        return;
+    }
+
+    // Create an args file used by scp-transfer service
+    std::ofstream argfile(scpArgsFile, std::ios::out | std::ios::trunc);
+    if (!argfile.is_open())
+    {
+        error("Failed to open an args file");
+        updateStatusProperties(fileName, target, Status::Invalid);
+        elog<InternalFailure>();
+        return;
+    }
+
+    std::string cmdContent = "serverAddress=" + serverAddress + "\n"
+                            + "username=" + username + "\n"
+                            + "sourceFilePath=" + sourceFilePath + "\n"
+                            + "target=" + target + "\n";
+
+    // Write cmdContent the args file
+    argfile << cmdContent;
+    argfile.close();
+
+    try
+    {
+        auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                          SYSTEMD_INTERFACE, "StartUnit");
+        method.append(scpTransferService + std::string(".service"), "replace");
+        bus.call_noreply(method);
+    }
+    catch (const std::exception& e)
+    {
+        error("Failed to start scp-transfer service");
+        updateStatusProperties(fileName, target, Status::Failed);
+        elog<InternalFailure>();
+        return;
+    }
+}
+
+void Download::addRemoteServerPublicKey(const std::string serverAddress,
+                                        const std::string publicKeyStr)
+{
+    // Create the entire directory path if it doesn't exist
+    fs::create_directories(fs::path(knownHostsFilePath).parent_path());
+
+    // Open known_hosts file in append mode, creating a new file if it doesn't exist
+    std::fstream knownHostsFile(knownHostsFilePath, std::ios::in | std::ios::out | std::ios::app);
+
+    if (!knownHostsFile.is_open())
+    {
+        error("Failed to update the known_hosts file");
+        elog<InternalFailure>();
+        return;
+    }
+
+    // Check if the combination already exists
+    std::string newLine = serverAddress + " " + publicKeyStr;
+    std::string line;
+    while (std::getline(knownHostsFile, line))
+    {
+        if (line == newLine)
+        {
+            error("Combination already exists, no need to add again");
+            knownHostsFile.close(); // Close the file
+        }
+    }
+
+    // Combination doesn't exist, so add it
+    knownHostsFile.clear();
+    knownHostsFile << newLine << std::endl;
+    knownHostsFile.close();
+}
+
+void Download::revokeAllRemoteServerPublicKeys(const std::string serverAddress)
+{
+    // Check if the known_hosts file exists
+    std::ifstream file(knownHostsFilePath);
+    if (!file.is_open())
+    {
+        error("Failed to open the known_hosts file");
+        elog<InternalFailure>();
+        return;
+    }
+
+    std::vector<std::string> lines;
+    std::string line;
+    
+    // Read lines from the known_hosts file and exclude lines containing serverAddress
+    while (std::getline(file, line))
+    {
+        if (line.find(serverAddress) == std::string::npos)
+        {
+            lines.push_back(line);
+        }
+    }
+
+    file.close();
+
+    // Reopen the file for writing, remove the existing content and write the updated content
+    std::ofstream outfile(knownHostsFilePath, std::ofstream::out | std::ofstream::trunc);
+    if (!outfile.is_open())
+    {
+        error("Failed to reopen the known_hosts file for writing");
+        elog<InternalFailure>();
+        return;
+    }
+
+    for (const std::string& newLine : lines)
+    {
+        outfile << newLine << std::endl;
+    }
+
+    outfile.close();
+}
+
+std::string Download::generateSelfKeyPair()
+{
+    const char* command;
+    std::string res, selfPublicKeyStr;
+    std::string selfKeyFilePath = "/home/root/.ssh/id_dropbear";
+
+    // Create the entire directory path if it doesn't exist
+    fs::create_directories(fs::path(selfKeyFilePath).parent_path());
+    if (!fs::exists(selfKeyFilePath))
+    {
+        command = "dropbearkey -t ed25519 -f ~/.ssh/id_dropbear";
+    }
+    else
+    {
+        command = "dropbearkey -y -f ~/.ssh/id_dropbear";
+    }
+
+    FILE* pipe = popen(command, "r");
+
+    if (!pipe)
+    {
+        error("Failed to open pipe to command");
+        return std::string();
+    }
+
+    char buffer;
+    while (fscanf(pipe, "%c", &buffer) != EOF)
+    {
+        res += buffer;
+    }
+
+    pclose(pipe);
+
+    // Res is: "Public key portion is:\n
+    // <type> <key> <username>@<hostname>\n
+    // Fingerprint: <Fingerprint>"
+    // selfPublicKeyStr contains "<type> <key>"
+
+    size_t startPos = res.find('\n') + 1;
+    size_t endTypePos = res.find(" ", startPos);
+    size_t endKeyPos = res.find(" ", endTypePos + 1);
+
+    if (startPos != std::string::npos && endKeyPos != std::string::npos)
+    {
+        selfPublicKeyStr = res.substr(startPos, endKeyPos - startPos);
+    }
+
+    return selfPublicKeyStr;
 }
 
 } // namespace manager

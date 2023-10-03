@@ -151,6 +151,7 @@ unit_files = [
     'reboot-guard-disable.service.in',
     'reboot-guard-enable.service.in',
     'force-reboot.service.in',
+    'scp-transfer.service.in',
     'usr-local.mount.in',
     'xyz.openbmc_project.Software.Download.service.in',
     'xyz.openbmc_project.Software.Sync.service.in'
