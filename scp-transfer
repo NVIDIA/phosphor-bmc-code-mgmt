@@ -98,6 +98,10 @@ while true; do
         transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
         break
     fi
+    if grep -q "host key mismatch for" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
+        break
+    fi
     if grep -q "Connect failed: Error resolving" "$log_file"; then
         transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
         break
