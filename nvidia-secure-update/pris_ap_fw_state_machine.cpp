@@ -267,11 +267,6 @@ void PrisAPFWStateMachine::StateStartFwUpdate(MachineContext& ctx)
         uint8_t  fwType = I2CCommLib::CEC_FW_ID;
         fs::path filePath(imgFileName);
 
-        if(filePath.parent_path().string()+"/"  == gpuFWFolder)
-        {
-              fwType = I2CCommLib::GPU_FW_ID;
-        }
-
         std::ifstream fwFile(imgFileName.c_str(), std::ios::binary);
         std::vector<char> imageData(I2CCommLib::OTA_HEADER_SIZE);
 

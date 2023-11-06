@@ -45,8 +45,8 @@ inline void logAndThrowError(std::string err_str, std::string additional_info)
 
 void tokenize(std::string const &strIn, std::vector<std::string> &out)
 {
-    const std::regex oldFormatReg("(.*)[.](.*)[.](.*)");
-    const std::regex newFormatReg("[a-zA-Z0-9]+[-](\\d*)[.](\\d*)[-](.*)");
+    const std::regex oldFormatReg("(\\d*)[.](\\d*)[.](\\d*)");
+    const std::regex newFormatReg("[a-zA-Z0-9]+[-](\\d{2})[.](\\d{2})[-](.*)");
     std::smatch found;
     
     // If the old format of x.x.x-N
@@ -103,8 +103,9 @@ bool stopDowngrade(fs::path manifestPath)
         int minorVersionInt = std::stoi(versionVector[1]);
 
         std::string lastVer = versionVector[2];
-        std::string verStr{lastVer[0]};
-        int versionInt = std::stoi(verStr);
+        // In case there are no digits at the beginning of lastVer, versionInt is 0
+        int versionInt = std::atoi(lastVer.c_str());
+
         bool cecStatus = utils::checkCECExist();
         if(cecStatus == true)
         {

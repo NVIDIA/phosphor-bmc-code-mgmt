@@ -382,6 +382,7 @@ void ApplyRebootGaurd()
 
         // Read os-release from /etc/ to get the functional BMC version
         auto functionalVersion = getBMCVersion(OS_RELEASE_FILE);
+
         bool startTimer{false};
 
         if (checkTimer)
@@ -392,12 +393,13 @@ void ApplyRebootGaurd()
         {
             try
             {
+                auto& objPath = objIter.first;
+                std::string objPathStr(objPath);
                 auto& intfMap = objIter.second;
                 auto& activationProps =
                     intfMap.at("xyz.openbmc_project.Software.Activation");
                 auto activation =
                     std::get<std::string>(activationProps.at("Activation"));
-
                 auto& versionProps =
                     intfMap.at("xyz.openbmc_project.Software.Version");
                 auto versionStr =
@@ -407,7 +409,10 @@ void ApplyRebootGaurd()
                     intfMap.at("xyz.openbmc_project.Common.FilePath");
                 auto pathStr = std::get<std::string>(pathProps.at("Path"));
 
-                if (functionalVersion == versionStr && pathStr.empty())
+                // Skip if the object name contains RUNNING_BMC and
+                // its version property matches the current version
+                if (functionalVersion == versionStr &&
+                    objPathStr.find(RUNNING_BMC) != std::string::npos)
                 {
                     continue;
                 }
@@ -541,12 +546,6 @@ static void StartWatchingUpdate(sdbusplus::message::message& msg)
 
 int main([[maybe_unused]]int argc, [[maybe_unused]]char** argv)
 {
-    I2CCommLib deviceLayer(phosphor::NvidiaSecureUpdate::busIdentifier,
-                           phosphor::NvidiaSecureUpdate::deviceAddrress);
-    uint8_t retVal = static_cast<uint8_t>(I2CCommLib::CommandStatus::UNKNOWN);
-    uint8_t count{0};
-    uint8_t maxRetry{5};
-
     CLI::App app{"Nvidia Secure Monitor Service"};
 
     sd_event_default(&phosphor::NvidiaSecureUpdate::cecGpioEventLoop);
@@ -580,60 +579,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char** argv)
         std::make_unique<phosphor::Timer>(
             phosphor::NvidiaSecureUpdate::bus.get_event(),
             phosphor::NvidiaSecureUpdate::TimerCallBack);
-
-    while (count < maxRetry)
-    {
-        try
-        {
-            deviceLayer.SendBootComplete();
-
-            constexpr auto setWaitForCopyComplete = std::chrono::milliseconds(
-                phosphor::NvidiaSecureUpdate::sleepInSeconds);
-
-            std::this_thread::sleep_for(setWaitForCopyComplete);
-
-            retVal = deviceLayer.GetLastCmdStatus();
-
-            if (retVal !=
-                static_cast<uint8_t>(I2CCommLib::CommandStatus::SUCCESS))
-            {
-                log<level::ERR>(
-                    "secure_monitor_service - SendBootComplete command failed.",
-                    entry("ERR=0x%x", retVal));
-                count++;
-                continue;
-            }
-
-            try
-            {
-                std::map<std::string, std::string> additionalData;
-                auto method = phosphor::NvidiaSecureUpdate::bus.new_method_call(
-                    "xyz.openbmc_project.Logging",
-                    "/xyz/openbmc_project/logging",
-                    "xyz.openbmc_project.Logging.Create", "Create");
-
-                method.append(
-                    "SendBootComplete Successful",
-                    "xyz.openbmc_project.Logging.Entry.Level.Informational",
-                    additionalData);
-                auto resp = phosphor::NvidiaSecureUpdate::bus.call(method);
-            }
-            catch (const sdbusplus::exception::exception& e)
-            {
-                log<level::ERR>("Error in invoking D-Bus logging "
-                                "create interface");
-            }
-
-            break;
-        }
-        catch (const std::exception& e)
-        {
-            log<level::ERR>(
-                "secure_monitor_service - SendBootComplete command failed.",
-                entry("EXCEPTION=%s", e.what()));
-            count++;
-        }
-    }
 
     if (!phosphor::NvidiaSecureUpdate::RequestGPIOEvents(
             phosphor::NvidiaSecureUpdate::cecGpioName,

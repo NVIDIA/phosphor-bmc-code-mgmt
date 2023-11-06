@@ -92,6 +92,7 @@ class I2CCommLib
      */
     struct ReadCecVersion
     {
+        uint8_t checkSum;
         uint8_t major;
         uint8_t minor;
     } __attribute__((packed));
@@ -160,13 +161,11 @@ class I2CCommLib
   
     std::string GetCommandStatusStr(uint8_t status);
     static constexpr uint8_t CEC_FW_ID{0x01};
-    static constexpr uint8_t GPU_FW_ID{0x02};
     static constexpr uint8_t BMC_FW_ID{0x04};
 
     static constexpr uint32_t OTA_HEADER_SIZE{0x130};
     static constexpr uint32_t OTA_HEADER_OFFSET_1MB_FILE_SIZE{0xFF000};
     static constexpr uint32_t OTA_HEADER_OFFSET_2MB_FILE_SIZE{0x1FF000};
-    static constexpr uint32_t GPU_ROM_IMAGE_SIZE{0x60000};
     static constexpr uint32_t MB_SIZE{0x100000};
 
 
