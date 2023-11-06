@@ -1,7 +1,5 @@
 #include "config.h"
 
-
-#include "version.hpp"
 #include "watch.hpp"
 
 #include <stdio.h>
@@ -41,6 +39,7 @@ using sdbusplus::exception::SdBusError;
 using namespace std::chrono;
 
 namespace Software = phosphor::logging::xyz::openbmc_project::Software;
+namespace server = sdbusplus::xyz::openbmc_project::Software::server;
 namespace fs = std::experimental::filesystem;
 
 std::unique_ptr<MachineContext> sUpdateMachineContext;
@@ -209,14 +208,13 @@ void UpdateManager::progress(uint8_t progress, std::string msg, bool fwUpdatePas
 
      std::string fileName = {phosphor::software::firmwareupdater::cecFWFolder + progressFile};
  
-     if(filePath.parent_path().string()+"/"  ==
-                      phosphor::software::firmwareupdater::gpuFWFolder)
+     if(activationProgress)
      {
-         fileName = phosphor::software::firmwareupdater::gpuFWFolder + progressFile;
+        activationProgress->progress(progress);
      }
 
      std::string outBuf{""};
-     
+
      if(!updateResult)
      {
           outBuf = std::string("TaskState=\"Running\"\nTaskStatus=\"OK\"\nTaskProgress=\"") +
@@ -224,13 +222,14 @@ void UpdateManager::progress(uint8_t progress, std::string msg, bool fwUpdatePas
      } 
      else
      {
-        
+        server::Activation::Activations res = server::Activation::Activations::Active;
         std::string taskState{"Firmware update succeeded.\n"};
         std::string taskStatus{"OK\n"};
         std::string taskProgress{"100\n"};
         
         if(!fwUpdatePass)
         {
+              res = server::Activation::Activations::Failed;
               taskState = "Firmware update failed.\n";
               taskStatus = "FAILED\n";
               taskProgress = "\"" + std::to_string(progress) + "\"\n"; 
@@ -238,12 +237,18 @@ void UpdateManager::progress(uint8_t progress, std::string msg, bool fwUpdatePas
         outBuf = std::string("TaskState="    + taskState + 
                              "TaskStatus="   + taskStatus + 
                              "TaskProgress=" + taskProgress);
+
+        if(activation)
+        {
+            activation->activation(res);
+        }
      }  
      if (!msg.empty())
      {
         outBuf += std::string("CEC info: ") + msg;
      }
- 
+
+     // Update fwFile
      std::ofstream fwFile(fileName, std::ofstream::out);
      fwFile << outBuf;
      fwFile.close();
@@ -292,6 +297,26 @@ int UpdateManager::processImage(const std::string& filePath)
         }
 
         EnableRebootGuard();
+
+        std::string objPath = std::string{SOFTWARE_CEC_UPDATE_OBJPATH};
+        // Check if activation exists
+        if (activation)
+        {
+            activation.reset();
+        }
+        // The object must be created everytime an update procedure is initiated
+        // in order to trigger the update-service callback function in the bmcweb,
+        // which tracks the procedure by checking the object properties.
+        activation = std::make_unique<ApFwActivation>(bus, objPath,
+                                                      server::Activation::Activations::Ready,
+                                                      server::Activation::RequestedActivations::None,
+                                                      this);
+        // Check if activationProgress exists
+        if (activationProgress)
+        {
+            activationProgress.reset();
+        }
+        activationProgress = std::make_unique<ApFwActivationProgress>(bus, objPath);
 
         if (!fs::is_regular_file(filePath))
         {

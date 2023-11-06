@@ -12,11 +12,8 @@
 
 #include <filesystem>
 
-static constexpr auto busIdentifier = CEC_BUS_IDENTIFIER;
-static constexpr auto deviceAddrress = CEC_DEVICE_ADDRESS;
-
 using namespace phosphor::logging;
-
+namespace server = sdbusplus::xyz::openbmc_project::Software::server;
 
 static std::string getCecVersion(void)
 {
@@ -31,7 +28,6 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[])
 {
     auto bus = sdbusplus::bus::new_default();
     
-    std::unique_ptr<phosphor::software::manager::Watch> watchGPU;
     std::unique_ptr<phosphor::software::manager::Watch> watchCEC;
 
     sd_event* loop = nullptr;
@@ -39,20 +35,17 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[])
 
     try
     {
-        bus.request_name("xyz.openbmc_project.Software.BMC.Nvidia.Updater");
+        bus.request_name(BUSNAME_NVIDIA_UPDATER);
+
+        sdbusplus::server::manager::manager objManager(bus, SOFTWARE_OBJPATH);
 
         std::unique_ptr<phosphor::software::manager::VersionInventoryEntry> versionPtr = std::make_unique<phosphor::software::manager::VersionInventoryEntry>(
-            bus, std::filesystem::path(SOFTWARE_OBJPATH) / "BF_CEC", getCecVersion());
+            bus, std::filesystem::path(SOFTWARE_CEC_OBJPATH), getCecVersion());
         versionPtr->createFunctionalAssociation(SOFTWARE_OBJPATH);
         versionPtr->createUpdateableAssociation(SOFTWARE_OBJPATH);
+        versionPtr->purpose(server::Version::VersionPurpose::Other);
 
         phosphor::software::firmwareupdater::UpdateManager imageManager(bus);
-        if(ENABLE_GPU_IB_UPDATE)
-        {
-            watchGPU = std::make_unique<phosphor::software::manager::Watch>(
-               loop, phosphor::software::firmwareupdater::gpuFWFolder,std::bind(std::mem_fn(&phosphor::software::firmwareupdater::UpdateManager::processImage), &imageManager,
-                            std::placeholders::_1));
-        }
 
         watchCEC = std::make_unique<phosphor::software::manager::Watch>(
             loop, phosphor::software::firmwareupdater::cecFWFolder,std::bind(std::mem_fn(&phosphor::software::firmwareupdater::UpdateManager::processImage), &imageManager,

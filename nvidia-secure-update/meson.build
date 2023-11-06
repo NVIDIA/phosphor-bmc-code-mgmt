@@ -18,6 +18,13 @@ nvidia_secure_monitor_sources = files(
     '../openssl_alloc.cpp'
 )
 
+nvidia_boot_complete_sources = files(
+    'i2c.cpp',
+    'i2c_comm_lib.cpp',
+    'nvidia_boot_complete.cpp',
+    '../openssl_alloc.cpp'
+)
+
 nvidia_fw_updater_sources = files(
     'state_machine_context.cpp',
     'state_machine.cpp',
@@ -48,6 +55,14 @@ nvidia_fw_tool_sources = files(
 executable(
     'nvidia-secure-monitor',
     nvidia_secure_monitor_sources,
+    include_directories: include_directories(lib_headers),
+    dependencies: [cppfs, deps, ssl, gpiodcxx, sdeventplus],
+    install: true
+)
+
+executable(
+    'nvidia-boot-complete',
+    nvidia_boot_complete_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, gpiodcxx, sdeventplus],
     install: true

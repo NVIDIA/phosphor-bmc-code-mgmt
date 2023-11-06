@@ -1,9 +1,9 @@
 #pragma once
 #include "version.hpp"
+#include "ap_fw_activation.hpp"
 
 #include <sdbusplus/timer.hpp>
 #include <sdbusplus/bus.hpp>
-
 
 namespace phosphor
 {
@@ -28,9 +28,6 @@ using DbusInterfaceMap = std::map<DbusInterface, PropertyMap>;
 
 using ObjectValueTree =
     std::map<sdbusplus::message::object_path, DbusInterfaceMap>;
-
-using Activation =
-    sdbusplus::xyz::openbmc_project::Software::server::Activation;
 
 class UpdateManager;
 
@@ -85,12 +82,11 @@ private:
 
     sdbusplus::bus::bus& bus;
 
-
   private:
     /** @brief Used to subscribe to dbus systemd signals **/
     sdbusplus::bus::match_t systemdSignals;
-
-
+    std::unique_ptr<ApFwActivation> activation;
+    std::unique_ptr<ApFwActivationProgress> activationProgress;
 };
 
 } // namespace firmwareupdater

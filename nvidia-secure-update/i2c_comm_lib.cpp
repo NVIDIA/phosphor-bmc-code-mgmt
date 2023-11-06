@@ -243,8 +243,9 @@ void I2CCommLib::GetCecVersion(ReadCecVersion& readStruct)
     try
     {
         std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr, true);
-        auto size = buf.size();
+        uint8_t size = buf.size();
         myDevice->readCustom(deviceOffset, size, &buf[0]);
+        VerifyCheckSum(buf);
         memcpy(&readStruct, &buf[0], sizeof(readStruct));
     }
     catch (const std::exception& e)
@@ -436,7 +437,6 @@ void I2CCommLib::SendImageToCEC(std::string& fileName, uint32_t imageSize)
 
         if (filePath.extension() == romExtension)
         {
-           imageData.resize(OTA_HEADER_SIZE + GPU_ROM_IMAGE_SIZE);
            if(fileSize > MB_SIZE)
            {
                otaHeaderOffset = OTA_HEADER_OFFSET_2MB_FILE_SIZE;
@@ -448,7 +448,6 @@ void I2CCommLib::SendImageToCEC(std::string& fileName, uint32_t imageSize)
            fwFile.seekg(otaHeaderOffset);
            fwFile.read(reinterpret_cast<char*>(imageData.data()), OTA_HEADER_SIZE);
            fwFile.seekg(0, std::ios::beg);
-           fwFile.read(reinterpret_cast<char*>(imageData.data()), GPU_ROM_IMAGE_SIZE);
 
         }
         else if(filePath.extension() == binExtension)

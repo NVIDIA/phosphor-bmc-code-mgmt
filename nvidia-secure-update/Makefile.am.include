@@ -13,7 +13,8 @@ bin_PROGRAMS += \
 	nvidia-secure-monitor \
 	nvidia-fw-updater \
 	nvidia-secure-copier \
-	nvidia-fw-tool
+	nvidia-fw-tool \
+	nvidia-boot-complete
 
 dist_bin_SCRIPTS += \
 	%reldir%/obmc-secure-copy-image
@@ -24,6 +25,11 @@ phosphor_image_updater_SOURCES += \
 	%reldir%/item_updater_helper.cpp \
 	%reldir%/state_machine.cpp \
 	%reldir%/pris_state_machine.cpp \
+	%reldir%/i2c.cpp \
+	%reldir%/i2c_comm_lib.cpp
+
+nvidia_boot_complete_SOURCES += \
+	%reldir%/nvidia_boot_complete.cpp \
 	%reldir%/i2c.cpp \
 	%reldir%/i2c_comm_lib.cpp
 
@@ -58,6 +64,7 @@ systemdsystemunit_DATA += \
 	%reldir%/obmc-secure-copy-image@.service \
         %reldir%/nvidia-secure-block-copy@.service \
 	%reldir%/nvidia-secure-monitor.service \
+	%reldir%/nvidia-boot-complete.service \
 	%reldir%/nvidia_ap_fw_updater.service \
         %reldir%/nvidia-reboot.service \
         %reldir%/reboot-guard-disable.service \
@@ -68,6 +75,8 @@ nvidia_secure_monitor_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STD
 nvidia_secure_monitor_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lsdeventplus -lstdplus
 nvidia_fw_updater_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
 nvidia_fw_updater_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus
+nvidia_boot_complete_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
+nvidia_boot_complete_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus
 nvidia_secure_copier_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)
 nvidia_secure_copier_LDFLAGS = $(generic_ldflags) $(SDEVENTPLUS_LIBS) $(STDPLUS_LIBS) -li2c -lstdplus
 nvidia_fw_tool_CXXFLAGS = $(generic_cxxflags) $(SDEVENTPLUS_CFLAGS) $(STDPLUS_CFLAGS)

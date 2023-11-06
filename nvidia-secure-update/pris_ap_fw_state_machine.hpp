@@ -31,8 +31,6 @@ static const std::string keyCopyServiceNameString{"fw_copy_service_name_string"}
 
 static const std::string checkUpdateInProgress{"AP FIRMWARE UPDATE IN PROGESS"};
 
-static const std::string gpuFWFolder{"/tmp/gpu_images/"};
-
 static const std::string cecFWFolder{"/tmp/cec_images/"};
 
 static const std::string romExtension{".rom"};

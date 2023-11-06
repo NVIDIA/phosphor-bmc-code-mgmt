@@ -1,0 +1,15 @@
+[Unit]
+Description=Nvidia CEC Notifier
+After=xyz.openbmc_project.Software.BMC.Updater.service
+Before=network.target
+
+[Service]
+RestartSec=1
+Restart=on-failure
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nvidia-boot-complete
+SyslogIdentifier=nvidia-boot-complete
+
+[Install]
+WantedBy=multi-user.target
