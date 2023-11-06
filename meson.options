@@ -15,6 +15,9 @@ option('host-bios-upgrade', type: 'feature', value: 'enabled',
 option('sync-bmc-files', type: 'feature', value: 'enabled',
     description: 'Enable sync of filesystem files.')
 
+option('cec-update', type: 'feature', value: 'disabled',
+    description: 'Enable cec secure update.')
+
 option('tests', type: 'feature', description: 'Build tests')
 
 option('verify-signature', type: 'feature', value: 'enabled',
@@ -41,6 +44,18 @@ option(
     'active-bmc-max-allowed', type: 'integer',
     value: 1,
     description: 'The maximum allowed active BMC versions.',
+)
+
+option(
+    'cec-bus-identifier', type: 'integer',
+    value: 4,
+    description: 'bus identifier for i2c line between BMC and CEC.',
+)
+
+option(
+    'cec-device-address', type: 'integer',
+    value: 0x55,
+    description: 'cec i2c address].',
 )
 
 option(

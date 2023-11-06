@@ -7,6 +7,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <iostream>
+#include <variant>
+#include <fstream>
+#include <map>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -15,6 +20,8 @@
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/lg2.hpp>
 #include <xyz/openbmc_project/Software/Image/error.hpp>
+#include <xyz/openbmc_project/Software/Activation/server.hpp>
+#include <sdbusplus/server.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -72,6 +79,52 @@ std::vector<std::string> getSoftwareObjects(sdbusplus::bus_t& bus)
     return paths;
 }
 
+#ifdef NVIDIA_SECURE_BOOT
+bool fileIsCECImage(const std::string& tarFilePath)
+{
+    std::ifstream binfile(tarFilePath, std::ifstream::in);
+
+    if (binfile.is_open())
+    {
+        // Read the first four bytes
+        char header[4];
+        binfile.read(header, 4);
+        binfile.close();
+        std::string str(header, 4);
+        std::string strcec = CEC_FW_FILE_HEADER;
+
+        // Check if this file is a CEC image, starts with CEC_FW_FILE_HEADER
+        if (str == strcec)
+        {
+            // Move the file to CEC directory
+            std::ifstream src(tarFilePath, std::ios::binary);
+            if (!src.is_open())
+            {
+                return false;
+            }
+
+            std::ofstream dst(CEC_FW_FILE, std::ios::binary);
+            if (!dst.is_open())
+            {
+                src.close();
+                return false;
+            }
+
+            // Both files are open
+            dst << src.rdbuf();
+
+            // Close both files
+            src.close();
+            dst.close();
+
+            // Delete the original file
+            std::remove(tarFilePath.c_str());
+            return true;
+        }
+    }
+    return false;
+}
+#endif
 } // namespace
 
 int Manager::processImage(const std::string& tarFilePath)
@@ -84,6 +137,16 @@ int Manager::processImage(const std::string& tarFilePath)
         report<ManifestFileFailure>(ManifestFail::PATH(tarFilePath.c_str()));
         return -1;
     }
+
+#ifdef NVIDIA_SECURE_BOOT
+    // Check if tarFilePath is a CEC image
+    if (fileIsCECImage(tarFilePath))
+    {
+        info("Abort BMC update and initiate CEC update");
+        return 0;
+    }
+#endif
+
     RemovablePath tarPathRemove(tarFilePath);
     fs::path tmpDirPath(std::string{IMG_UPLOAD_DIR});
     tmpDirPath /= "imageXXXXXX";
