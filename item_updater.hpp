@@ -9,6 +9,7 @@
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 #include <xyz/openbmc_project/Common/FactoryReset/server.hpp>
 #include <xyz/openbmc_project/Control/FieldMode/server.hpp>
+#include <xyz/openbmc_project/Software/UpdatePolicy/server.hpp>
 
 #include <string>
 #include <vector>
@@ -24,7 +25,8 @@ using ItemUpdaterInherit = sdbusplus::server::object_t<
     sdbusplus::xyz::openbmc_project::Common::server::FactoryReset,
     sdbusplus::xyz::openbmc_project::Control::server::FieldMode,
     sdbusplus::xyz::openbmc_project::Association::server::Definitions,
-    sdbusplus::xyz::openbmc_project::Collection::server::DeleteAll>;
+    sdbusplus::xyz::openbmc_project::Collection::server::DeleteAll,
+    sdbusplus::xyz::openbmc_project::Software::server::UpdatePolicy>;
 
 namespace MatchRules = sdbusplus::bus::match::rules;
 using VersionClass = phosphor::software::manager::Version;

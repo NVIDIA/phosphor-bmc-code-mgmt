@@ -28,6 +28,7 @@ conf = configuration_data()
 # DBus information
 conf.set_quoted('BMC_INVENTORY_INTERFACE', 'xyz.openbmc_project.Inventory.Item.Bmc')
 conf.set_quoted('BUSNAME_UPDATER', 'xyz.openbmc_project.Software.BMC.Updater')
+conf.set_quoted('BUSNAME_NVIDIA_UPDATER', 'xyz.openbmc_project.Software.BMC.Nvidia.Updater')
 conf.set_quoted('DOWNLOAD_BUSNAME', 'xyz.openbmc_project.Software.Download')
 conf.set_quoted('FILEPATH_IFACE', 'xyz.openbmc_project.Common.FilePath')
 conf.set_quoted('INVENTORY_PATH', '/xyz/openbmc_project/inventory/')
@@ -35,6 +36,8 @@ conf.set_quoted('MAPPER_BUSNAME', 'xyz.openbmc_project.ObjectMapper')
 conf.set_quoted('MAPPER_INTERFACE', 'xyz.openbmc_project.ObjectMapper')
 conf.set_quoted('MAPPER_PATH', '/xyz/openbmc_project/object_mapper')
 conf.set_quoted('SOFTWARE_OBJPATH', '/xyz/openbmc_project/software')
+conf.set_quoted('SOFTWARE_CEC_OBJPATH', '/xyz/openbmc_project/software/Bluefield_FW_ERoT')
+conf.set_quoted('SOFTWARE_CEC_UPDATE_OBJPATH', '/xyz/openbmc_project/software/BF_CEC_UPDATE')
 conf.set_quoted('SYSTEMD_BUSNAME', 'org.freedesktop.systemd1')
 conf.set_quoted('SYSTEMD_PATH', '/org/freedesktop/systemd1')
 conf.set_quoted('SYSTEMD_INTERFACE', 'org.freedesktop.systemd1.Manager')
@@ -69,6 +72,7 @@ conf.set_quoted('OS_RELEASE_FILE', '/etc/os-release')
 conf.set_quoted('PERSIST_DIR', '/var/lib/phosphor-bmc-code-mgmt/')
 # The name of the bmc software manufacturer
 conf.set_quoted('BMC_SOFTWARE_MANUFACTURER', get_option('bmc-software-manufacturer'))
+conf.set_quoted('CEC_FW_FILE', '/tmp/cec_images/cec.bin')
 
 # Supported BMC layout types
 conf.set('STATIC_LAYOUT', get_option('bmc-layout').contains('static'))
@@ -89,6 +93,7 @@ conf.set_quoted('HASH_FILE_NAME', get_option('hash-file-name'))
 conf.set_quoted('IMG_UPLOAD_DIR', get_option('img-upload-dir'))
 conf.set_quoted('MANIFEST_FILE_NAME', get_option('manifest-file-name'))
 conf.set_quoted('MEDIA_DIR', get_option('media-dir'))
+conf.set_quoted('CEC_FW_FILE_HEADER', 'ADVN')
 optional_array = get_option('optional-images')
 optional_images = ''
 foreach optiona_image : optional_array

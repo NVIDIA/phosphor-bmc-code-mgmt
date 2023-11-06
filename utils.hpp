@@ -1,3 +1,4 @@
+#pragma once
 #include "config.h"
 
 #include <sdbusplus/server.hpp>
