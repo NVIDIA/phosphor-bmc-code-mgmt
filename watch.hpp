@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <filesystem>
 
 namespace phosphor
 {
@@ -11,6 +12,8 @@ namespace software
 {
 namespace manager
 {
+
+namespace fs = std::filesystem;
 
 /** @class Watch
  *
@@ -30,6 +33,18 @@ class Watch
      */
     Watch(sd_event* loop, std::function<int(std::string&)> imageCallback);
 
+#ifdef NVIDIA_SECURE_BOOT
+    /** @brief ctor - hook inotify watch with sd-event
+     *
+     *  @param[in] loop - sd-event object
+     *  @param[in] path - filepath object
+     *  @param[in] imageCallback - The callback function for processing
+     *                             the image
+     */
+    Watch(sd_event* loop, const fs::path& path,
+          std::function<int(std::string&)> imageCallback);
+#endif
+
     Watch(const Watch&) = delete;
     Watch& operator=(const Watch&) = delete;
     Watch(Watch&&) = delete;
@@ -38,6 +53,11 @@ class Watch
     /** @brief dtor - remove inotify watch and close fd's
      */
     ~Watch();
+
+#ifdef NVIDIA_SECURE_BOOT
+    /** @brief File path to be watched */
+    fs::path path;
+#endif
 
   private:
     /** @brief sd-event callback
@@ -50,6 +70,15 @@ class Watch
      */
     static int callback(sd_event_source* s, int fd, uint32_t revents,
                         void* userdata);
+
+#ifdef NVIDIA_SECURE_BOOT
+    /** @brief adds watch on path given as an argument
+     *
+     *  @param[in] loop - sd-event object
+     *  @param[in] path - filepath object
+     */
+    void createInotify(sd_event* loop, const fs::path& path);
+#endif
 
     /** @brief image upload directory watch descriptor */
     int wd = -1;
