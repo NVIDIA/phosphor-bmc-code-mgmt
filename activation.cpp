@@ -90,6 +90,14 @@ auto Activation::activation(Activations value) -> Activations
 
     if (value == softwareServer::Activation::Activations::Activating)
     {
+
+#ifdef NVIDIA_SECURE_BOOT
+        if (secureUpdateProgress != SecureUpdate::IDLE)
+        {
+            return softwareServer::Activation::activation(value);
+        }
+#endif
+
 #ifdef WANT_SIGNATURE_VERIFY
         fs::path uploadDir(IMG_UPLOAD_DIR);
         if (!verifySignature(uploadDir / versionId, SIGNED_IMAGE_CONF_PATH))
@@ -151,6 +159,28 @@ auto Activation::activation(Activations value) -> Activations
         Activation::subscribeToSystemdSignals();
 
         flashWrite();
+
+#ifdef NVIDIA_SECURE_BOOT
+        if (!secureFlashSuceeded || !unsecureFlashSuceeded)
+        {
+            Activation::unsubscribeFromSystemdSignals();
+            activationBlocksTransition.reset(nullptr);
+            return softwareServer::Activation::activation(
+                softwareServer::Activation::Activations::Failed);
+        }
+        if (secureUpdateProgress != SecureUpdate::IDLE)
+        {
+            return softwareServer::Activation::activation(value);
+        }
+
+        bool cecStatus = utils::checkCECExist();
+        //Set progress for non-cec update
+        if(unsecureFlashSuceeded && !cecStatus) {
+            activationProgress->progress(100);
+            activationBlocksTransition.reset(nullptr);
+        }
+#endif
+
 
 #if defined UBIFS_LAYOUT || defined MMC_LAYOUT
 
@@ -269,6 +299,13 @@ auto Activation::requestedActivation(RequestedActivations value)
     roVolumeCreated = false;
     ubootEnvVarsUpdated = false;
 
+#ifdef NVIDIA_SECURE_BOOT
+    if (secureUpdateProgress != SecureUpdate::IDLE)
+    {
+        error("Error an update is in progress.");
+        report<InternalFailure>();
+    }
+#endif
     if ((value == softwareServer::Activation::RequestedActivations::Active) &&
         (softwareServer::Activation::requestedActivation() !=
          softwareServer::Activation::RequestedActivations::Active))

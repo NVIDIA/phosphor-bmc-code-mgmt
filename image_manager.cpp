@@ -244,6 +244,16 @@ void Manager::erase(std::string entryId)
         return;
     }
 
+#ifdef NVIDIA_SECURE_BOOT
+    if (it->second->isFunctional() &&
+        entryId.find(RUNNING_BMC) != std::string::npos)
+    {
+        error(
+            "Version {VERSION} is currently running on the BMC; unable to remove",
+            "VERSION", entryId);
+        return;
+    }
+#endif
     // Delete image dir
     fs::path imageDirPath = (*(it->second)).path();
     std::error_code ec;
