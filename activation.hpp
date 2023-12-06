@@ -8,6 +8,7 @@
 #include "xyz/openbmc_project/Software/RedundancyPriority/server.hpp"
 
 #include <sdbusplus/server.hpp>
+#include <sdbusplus/timer.hpp>
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 #include <xyz/openbmc_project/Software/Activation/server.hpp>
 #include <xyz/openbmc_project/Software/ActivationBlocksTransition/server.hpp>
@@ -334,6 +335,26 @@ class Activation : public ActivationInherit, public Flash
     /** @brief Tracks if the service that updates the U-Boot environment
      *         variables has completed. **/
     bool ubootEnvVarsUpdated = false;
+
+#ifdef NVIDIA_SECURE_BOOT
+    enum class SecureUpdate
+    {
+        IDLE,
+        INPROGRESS
+    };
+
+    inline static SecureUpdate secureUpdateProgress = SecureUpdate::IDLE;
+
+    bool secureFlashSuceeded = true;
+
+    /** @brief Used for the non-cec flash update */
+    bool unsecureFlashSuceeded = true;
+
+    std::unique_ptr<phosphor::Timer> secureUpdateTimer;
+
+    void failActivation(bool failed = true);
+
+#endif
 
 #ifdef WANT_SIGNATURE_VERIFY
   private:

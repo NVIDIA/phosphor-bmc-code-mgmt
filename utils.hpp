@@ -75,6 +75,10 @@ void setProperty(sdbusplus::bus_t& bus, const std::string& objectPath,
 void mergeFiles(const std::vector<std::string>& srcFiles,
                 const std::string& dstFile);
 
+#ifdef NVIDIA_SECURE_BOOT
+bool checkCECExist();
+#endif
+
 namespace internal
 {
 

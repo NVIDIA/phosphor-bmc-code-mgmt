@@ -21,6 +21,7 @@ add_project_arguments(
 )
 
 cpp = meson.get_compiler('cpp')
+cppfs = meson.get_compiler('cpp').find_library('stdc++fs')
 
 conf = configuration_data()
 
@@ -41,6 +42,12 @@ conf.set_quoted('VERSION_BUSNAME', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('VERSION_IFACE', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('EXTENDED_VERSION_IFACE', 'xyz.openbmc_project.Software.ExtendedVersion')
 conf.set_quoted('COMPATIBLE_IFACE', 'xyz.openbmc_project.Inventory.Decorator.Compatible')
+conf.set_quoted('SECUREBOOT_BUSNAME', 'com.nvidia.Secureboot')
+conf.set_quoted('SECUREBOOT_PATH', '/com/nvidia/secureboot')
+conf.set_quoted('CEC_GPIO_LINE', 'cec_int')
+conf.set('CEC_DEVICE_ADDRESS', get_option('cec-device-address'))
+conf.set('CEC_BUS_IDENTIFIER', get_option('cec-bus-identifier'))
+
 
 # Names of the forward and reverse associations
 conf.set_quoted('ACTIVATION_FWD_ASSOCIATION', 'inventory')
@@ -51,6 +58,7 @@ conf.set_quoted('FUNCTIONAL_FWD_ASSOCIATION', 'functional')
 conf.set_quoted('FUNCTIONAL_REV_ASSOCIATION', 'software_version')
 conf.set_quoted('UPDATEABLE_FWD_ASSOCIATION', 'updateable')
 conf.set_quoted('UPDATEABLE_REV_ASSOCIATION', 'software_version')
+conf.set_quoted('RUNNING_BMC', '_BMC_Firmware')
 
 # Filesystem files and directories
 # The prefix path for the versioned read-only bmc partitions
@@ -66,6 +74,7 @@ conf.set_quoted('BMC_SOFTWARE_MANUFACTURER', get_option('bmc-software-manufactur
 conf.set('STATIC_LAYOUT', get_option('bmc-layout').contains('static'))
 conf.set('UBIFS_LAYOUT', get_option('bmc-layout').contains('ubi'))
 conf.set('MMC_LAYOUT', get_option('bmc-layout').contains('mmc'))
+conf.set('NVIDIA_SECURE_BOOT', get_option('cec-update').enabled())
 
 # Configurable features
 conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').allowed())
@@ -179,10 +188,33 @@ image_updater_sources = files(
 )
 
 if get_option('bmc-layout').contains('static')
-    image_updater_sources += files(
-        'static/flash.cpp',
-        'static/item_updater_helper.cpp'
-    )
+   if get_option('cec-update').enabled()
+       image_updater_sources += files(
+           'nvidia-secure-update/flash.cpp',
+           'nvidia-secure-update/item_updater_helper.cpp',
+           'nvidia-secure-update/state_machine.cpp',
+           'nvidia-secure-update/pris_state_machine.cpp',
+           'nvidia-secure-update/i2c.cpp',
+           'nvidia-secure-update/i2c_comm_lib.cpp',
+           'nvidia-secure-update/state_machine_context.cpp'
+       )
+       unit_files += [
+          'nvidia-secure-update/obmc-secure-copy-image@.service.in',
+          'nvidia-secure-update/nvidia-secure-block-copy@.service.in',
+          'nvidia-secure-update/nvidia-secure-monitor.service.in',
+          'nvidia-secure-update/nvidia-boot-complete.service.in',
+          'nvidia-secure-update/nvidia_ap_fw_updater.service.in',
+          'nvidia-secure-update/nvidia-reboot.service.in',
+          'nvidia-secure-update/reboot-guard-disable.service.in',
+          'nvidia-secure-update/reboot-guard-enable.service.in'
+      ]
+
+    else
+       image_updater_sources += files(
+          'static/flash.cpp',
+          'static/item_updater_helper.cpp'
+       )
+   endif
 elif get_option('bmc-layout').contains('ubi')
     image_updater_sources += files(
         'ubi/flash.cpp',
@@ -266,7 +298,7 @@ executable(
 executable(
     'phosphor-image-updater',
     image_updater_sources,
-    dependencies: [deps, ssl],
+    dependencies: [deps, ssl, cppfs],
     install: true
 )
 
@@ -276,7 +308,7 @@ executable(
     'image_manager_main.cpp',
     'version.cpp',
     'watch.cpp',
-    dependencies: [deps, ssl],
+    dependencies: [deps, ssl, cppfs],
     install: true
 )
 executable(
@@ -311,6 +343,10 @@ install_data('scp-transfer',
     install_mode: 'rwxr-xr-x',
     install_dir: get_option('bindir')
 )
+
+if get_option('cec-update').enabled()
+   subdir('nvidia-secure-update')
+endif
 
 foreach u : unit_files
     configure_file(

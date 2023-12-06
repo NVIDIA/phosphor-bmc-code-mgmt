@@ -1,6 +1,10 @@
 #include "utils.hpp"
 
 #include <unistd.h>
+#ifdef NVIDIA_SECURE_BOOT
+#include <iostream>
+#include <fstream>
+#endif
 
 #include <phosphor-logging/lg2.hpp>
 
@@ -83,6 +87,24 @@ void mergeFiles(const std::vector<std::string>& srcFiles,
     }
     outFile.close();
 }
+
+#ifdef NVIDIA_SECURE_BOOT
+bool checkCECExist()
+{
+    std::ifstream input("/dev/mtd/u-boot-env");
+    std::string envVar;
+    std::getline(input, envVar);
+
+    if (envVar.find("cec_exist=0") != std::string::npos)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+#endif
 
 namespace internal
 {

@@ -26,9 +26,18 @@ void Helper::cleanup()
 
 void Helper::factoryReset()
 {
+#ifdef NVIDIA_SECURE_BOOT
+    // The shutdown will cleanup rwfs during reboot.
+    utils::execute("/bin/touch", "/run/factory-reset");
+
+    // Set vendorfieldmode=disabled env in U-Boot.
+    // This will disable the vendor field mode settings.
+    utils::execute("/sbin/fw_setenv","vendorfieldmode", "disabled");
+#else
     // Set openbmconce=factory-reset env in U-Boot.
     // The init will cleanup rwfs during boot.
     utils::execute("/sbin/fw_setenv", "openbmconce", "factory-reset");
+#endif
 }
 
 void Helper::removeVersion(const std::string& /* flashId */)

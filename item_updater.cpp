@@ -60,6 +60,14 @@ void ItemUpdater::createActivation(sdbusplus::message_t& msg)
 
     for (const auto& intf : interfaces)
     {
+#ifdef NVIDIA_SECURE_BOOT
+        if (intf.first == "xyz.openbmc_project.Software.Activation")
+        {
+            log<level::INFO>("Ignore callback for the activation obj addition.");
+            return;
+        }
+#endif
+
         if (intf.first == VERSION_IFACE)
         {
             for (const auto& property : intf.second)
@@ -116,6 +124,9 @@ void ItemUpdater::createActivation(sdbusplus::message_t& msg)
         }
     }
     if (version.empty() || filePath.empty() ||
+#ifdef NVIDIA_SECURE_BOOT
+        (filePath.find(RUNNING_BMC) != std::string::npos) ||
+#endif
         purpose == VersionPurpose::Unknown)
     {
         return;
@@ -247,6 +258,14 @@ void ItemUpdater::processBMCImage()
             auto flashId = iter.path().native().substr(BMC_RO_PREFIX_LEN);
 
             auto id = VersionClass::getId(version + flashId);
+
+#ifdef NVIDIA_SECURE_BOOT
+            if (iter.path().native().find(functionalSuffix) !=
+                std::string::npos)
+            {
+                id = id + RUNNING_BMC;
+            }
+#endif
 
             // Check if the id has already been added. This can happen if the
             // BMC partitions / devices were manually flashed with the same
@@ -401,7 +420,12 @@ void ItemUpdater::erase(std::string entryId)
     auto it = versions.find(entryId);
     if (it != versions.end())
     {
+#ifdef NVIDIA_SECURE_BOOT
+        if (it->second->isFunctional() && ACTIVE_BMC_MAX_ALLOWED > 1 &&
+            entryId.find(RUNNING_BMC) != std::string::npos)
+#else
         if (it->second->isFunctional() && ACTIVE_BMC_MAX_ALLOWED > 1)
+#endif
         {
             error(
                 "Version ({VERSIONID}) is currently running on the BMC; unable to remove.",
@@ -842,7 +866,14 @@ bool ItemUpdater::checkImage(const std::string& filePath,
         std::ifstream efile(file.c_str());
         if (efile.good() != 1)
         {
+#ifdef NVIDIA_SECURE_BOOT
+            if (bmcImage == phosphor::software::image::SECURE_IMAGE_NAME)
+            {
+		valid = false;
+            }
+#else
             valid = false;
+#endif
             break;
         }
     }
