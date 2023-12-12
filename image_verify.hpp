@@ -28,7 +28,7 @@ using HashFilePath = fs::path;
 using KeyHashPathPair = std::pair<HashFilePath, PublicKeyPath>;
 using AvailableKeyTypes = std::set<Key_t>;
 using VersionPurpose =
-    sdbusplus::xyz::openbmc_project::Software::server::Version::VersionPurpose;
+    sdbusplus::server::xyz::openbmc_project::software::Version::VersionPurpose;
 
 // RAII support for openSSL functions.
 using BIO_MEM_Ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
@@ -52,8 +52,7 @@ struct CustomFd
      *
      *  @param[in] fd - File descriptor
      */
-    explicit CustomFd(int fd) : fd(fd)
-    {}
+    explicit CustomFd(int fd) : fd(fd) {}
 
     ~CustomFd()
     {
@@ -98,8 +97,7 @@ struct CustomMap
      *  @param[in]  addr - Starting address of the map
      *  @param[in]  length - length of the map
      */
-    CustomMap(void* addr, size_t length) : addr(addr), length(length)
-    {}
+    CustomMap(void* addr, size_t length) : addr(addr), length(length) {}
 
     ~CustomMap()
     {

@@ -1,11 +1,11 @@
 project('phosphor-bmc-code-mgmt', 'cpp',
     default_options: [
         'buildtype=debugoptimized',
-        'cpp_std=c++20',
+        'cpp_std=c++23',
         'warning_level=3',
         'werror=true'
     ],
-    meson_version: '>= 0.57.0',
+    meson_version: '>=1.1.1',
     license: 'Apache-2.0',
     version: '1.0')
 
@@ -66,11 +66,8 @@ conf.set('UBIFS_LAYOUT', get_option('bmc-layout').contains('ubi'))
 conf.set('MMC_LAYOUT', get_option('bmc-layout').contains('mmc'))
 
 # Configurable features
-conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').enabled())
-conf.set('WANT_SIGNATURE_VERIFY', \
-    get_option('verify-signature').enabled() or \
-    get_option('verify-full-signature').enabled())
-conf.set('WANT_SIGNATURE_FULL_VERIFY', get_option('verify-full-signature').enabled())
+conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').allowed())
+conf.set('WANT_SIGNATURE_VERIFY', get_option('verify-signature').allowed())
 
 # Configurable variables
 conf.set('ACTIVE_BMC_MAX_ALLOWED', get_option('active-bmc-max-allowed'))
@@ -94,12 +91,12 @@ conf.set_quoted('REGEX_BMC_MSL', get_option('regex-bmc-msl'))
 conf.set_quoted('FIRMWARE_INV_NAME', get_option('firmware-inventory-name'))
 conf.set_quoted('PLATFORM_BMC_ID', get_option('platform-bmc-id'))
 
-if get_option('host-bios-upgrade').enabled()
+if get_option('host-bios-upgrade').allowed()
     conf.set_quoted('BIOS_OBJPATH', get_option('bios-object-path'))
 endif
 
-if get_option('bmc-static-dual-image').enabled()
-  conf.set('BMC_STATIC_DUAL_IMAGE', get_option('bmc-static-dual-image').enabled())
+if get_option('bmc-static-dual-image').allowed()
+  conf.set('BMC_STATIC_DUAL_IMAGE', get_option('bmc-static-dual-image').allowed())
   conf.set_quoted('ALT_ROFS_DIR', get_option('alt-rofs-dir'))
   conf.set_quoted('ALT_RWFS', get_option('alt-rwfs-dir'))
 else
@@ -142,7 +139,7 @@ deps = [
 ssl = dependency('openssl')
 
 systemd = dependency('systemd')
-systemd_system_unit_dir = systemd.get_variable(pkgconfig : 'systemdsystemunitdir')
+systemd_system_unit_dir = systemd.get_variable('systemdsystemunitdir')
 
 unit_files = [
     'obmc-flash-bmc-setenv@.service.in',
@@ -166,8 +163,6 @@ if get_option('inventory-provider').enabled()
         'xyz.openbmc_project.Software.BMC.Inventory.service.in'
     ]
 endif
-
-subdir('xyz/openbmc_project/Software/Image')
 
 image_updater_sources = files(
     'activation.cpp',
@@ -217,11 +212,11 @@ elif get_option('bmc-layout').contains('mmc')
     ]
 endif
 
-if get_option('host-bios-upgrade').enabled()
+if get_option('host-bios-upgrade').allowed()
     unit_files += 'obmc-flash-host-bios@.service.in'
 endif
 
-if get_option('bmc-static-dual-image').enabled()
+if get_option('bmc-static-dual-image').allowed()
     unit_files += [
         'static/obmc-flash-bmc-alt@.service.in',
         'static/obmc-flash-bmc-static-mount-alt.service.in',
@@ -229,7 +224,7 @@ if get_option('bmc-static-dual-image').enabled()
     ]
 endif
 
-if get_option('sync-bmc-files').enabled()
+if get_option('sync-bmc-files').allowed()
     executable(
         'phosphor-sync-software-manager',
         'sync_manager.cpp',
@@ -249,8 +244,7 @@ if get_option('sync-bmc-files').enabled()
     )
 endif
 
-if (get_option('verify-signature').enabled() or \
-    get_option('verify-full-signature').enabled())
+if (get_option('verify-signature').allowed())
     image_updater_sources += files(
         'utils.cpp',
         'image_verify.cpp',
@@ -268,8 +262,6 @@ executable(
 
 executable(
     'phosphor-image-updater',
-    image_error_cpp,
-    image_error_hpp,
     image_updater_sources,
     dependencies: [deps, ssl],
     install: true
@@ -277,8 +269,6 @@ executable(
 
 executable(
     'phosphor-version-software-manager',
-    image_error_cpp,
-    image_error_hpp,
     'image_manager.cpp',
     'image_manager_main.cpp',
     'version.cpp',
@@ -346,10 +336,10 @@ if not build_tests.disabled()
 )
 endif
 
-if get_option('usb-code-update').enabled()
+if get_option('usb-code-update').allowed()
     subdir('usb')
 endif
 
-if get_option('side-switch-on-boot').enabled()
+if get_option('side-switch-on-boot').allowed()
     subdir('side-switch')
 endif

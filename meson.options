@@ -18,10 +18,7 @@ option('sync-bmc-files', type: 'feature', value: 'enabled',
 option('tests', type: 'feature', description: 'Build tests')
 
 option('verify-signature', type: 'feature', value: 'enabled',
-    description: 'LEGACY: Use verify-full-signature instead. Enable image signature validation.')
-
-option('verify-full-signature', type: 'feature', value: 'enabled',
-    description: 'Enable image full signature validation.')
+    description: 'Enable image signature validation.')
 
 option(
     'usb-code-update', type: 'feature', value: 'enabled',

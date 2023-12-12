@@ -27,7 +27,7 @@ namespace software
 namespace updater
 {
 
-namespace softwareServer = sdbusplus::xyz::openbmc_project::Software::server;
+namespace softwareServer = sdbusplus::server::xyz::openbmc_project::software;
 
 PHOSPHOR_LOG2_USING;
 using namespace phosphor::logging;
@@ -35,7 +35,7 @@ using InternalFailure =
     sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
 
 #ifdef WANT_SIGNATURE_VERIFY
-namespace control = sdbusplus::xyz::openbmc_project::Control::server;
+namespace control = sdbusplus::server::xyz::openbmc_project::control;
 #endif
 
 void Activation::subscribeToSystemdSignals()
@@ -116,8 +116,8 @@ auto Activation::activation(Activations value) -> Activations
 
         if (!activationProgress)
         {
-            activationProgress =
-                std::make_unique<ActivationProgress>(bus, path);
+            activationProgress = std::make_unique<ActivationProgress>(bus,
+                                                                      path);
         }
 
         if (!activationBlocksTransition)
@@ -192,8 +192,8 @@ void Activation::onFlashWriteSuccess()
 
     if (!redundancyPriority)
     {
-        redundancyPriority =
-            std::make_unique<RedundancyPriority>(bus, path, *this, 0);
+        redundancyPriority = std::make_unique<RedundancyPriority>(bus, path,
+                                                                  *this, 0);
     }
 
     // Remove version object from image manager
@@ -366,7 +366,6 @@ bool Activation::checkApplyTimeImmediate()
     }
     else
     {
-
         auto method = bus.new_method_call(service.c_str(), applyTimeObjPath,
                                           dbusPropIntf, "Get");
         method.append(applyTimeIntf, applyTimeProp);
