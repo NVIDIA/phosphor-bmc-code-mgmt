@@ -7,13 +7,6 @@ findmtd() {
   echo "${m}"
 }
 
-# Get the mtd device number only (return X of mtdX)
-findmtdnum() {
-  m="$(findmtd "$1")"
-  m="${m##mtd}"
-  echo "${m}"
-}
-
 mtd_write() {
   #To enable the staging flash access on BMC.
 
@@ -24,7 +17,7 @@ mtd_write() {
   sleep 3
 
   file_buffer="/tmp/images/${version}/buffer_64k"
-  dd if=/dev/zero of=$file_buffer bs=1024 count=64
+  dd if=/dev/zero of="$file_buffer" bs=1024 count=64
   new_img_file="/tmp/images/${version}/new_image"
 
   flashmtd="$(findmtd "${reqmtd}")"
@@ -42,20 +35,20 @@ mtd_write() {
 
   #We write the actual BMC image starting from the 64K offset.
   #This helps CEC in improving the overall read/write performance.
-  cat $file_buffer $img > $new_img_file
+  cat "$file_buffer" "$img" > "$new_img_file"
 
   if [ ! -e "$new_img_file" ]; then
     echo "nvidia-secure-update: File $new_img_file not exists"
     exit 1
   fi
 
-  if test ! -s $new_img_file
+  if test ! -s "$new_img_file"
   then
     echo "nvidia-secure-update: Skipping empty update of $new_img_file}."
     exit 1
   fi
 
-  if [ "x$flashmtd" == "x" ]; then
+  if [ "$flashmtd" == "" ]; then
       echo "nvidia-secure-update: parition not found"
       exit 1
   fi
@@ -63,7 +56,7 @@ mtd_write() {
 
   echo "nvidia-secure-update: updating image $new_img_file to partition $/dev/${flashmtd}."
 
-  flashcp -v ${new_img_file} /dev/${flashmtd}
+  flashcp -v "${new_img_file}" /dev/"${flashmtd}"
   ret_code=$?
 
   echo "nvidia-secure-update: copy image $new_img_file to partition $/dev/${flashmtd} completed."
