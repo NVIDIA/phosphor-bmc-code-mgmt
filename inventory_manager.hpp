@@ -3,6 +3,7 @@
 #include <xyz/openbmc_project/Common/FactoryReset/server.hpp>
 #include <xyz/openbmc_project/Software/Settings/server.hpp>
 #include <com/nvidia/Common/CompleteReset/server.hpp>
+#include <xyz/openbmc_project/Inventory/Decorator/Asset/server.hpp>
 #include "utils.hpp"
 #include <phosphor-logging/elog.hpp>
 #include <sdbusplus/server.hpp>
@@ -27,6 +28,8 @@ using OemCompleteResetInherit = sdbusplus::server::object::object<
     sdbusplus::com::nvidia::Common::server::CompleteReset>;
 using SettingsInventoryEntryInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Software::server::Settings>;
+using ManufacturerInherit = sdbusplus::server::object::object<
+    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Asset>;
 
 /**
  * @brief Manages Inventory for BMC firmware versions. This publishes the BMC
@@ -34,7 +37,7 @@ using SettingsInventoryEntryInherit = sdbusplus::server::object::object<
  *        Handles Factory reset Dbus backend implementation for erasing RWFS 
  *
  */
-class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit, SettingsInventoryEntryInherit
+class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit, SettingsInventoryEntryInherit, ManufacturerInherit
 {
   public:
     /**
@@ -49,9 +52,12 @@ class InventoryManager : public InventoryManagerInherit, OemCompleteResetInherit
                                 OemCompleteResetInherit::action::defer_emit),
         SettingsInventoryEntryInherit(bus,(std::string{SOFTWARE_OBJPATH} + "/" + std::string{FIRMWARE_INV_NAME}).c_str(),
                                 SettingsInventoryEntryInherit::action::defer_emit),
+        ManufacturerInherit(bus, (std::string{SOFTWARE_OBJPATH} + "/" + std::string{FIRMWARE_INV_NAME}).c_str(),
+                                ManufacturerInherit::action::defer_emit),
         bus(bus)
     {
         readExistingVersion();
+        manufacturer(BMC_SOFTWARE_MANUFACTURER);
     }
 
     /**

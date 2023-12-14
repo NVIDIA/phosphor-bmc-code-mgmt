@@ -1,0 +1,147 @@
+#!/bin/bash
+# SCP Transfer Script
+# This script facilitates file transfers using SCP (Secure Copy Protocol).
+# It reads configuration details from an args file, initiates the transfer,
+# monitors the progress, and updates the transfer status.
+
+# Args File Format:
+#   serverAddress=<address>
+#   username=<username>
+#   sourceFilePath=<source_path>
+#   target=<target_path>
+
+# Function to update DBus properties
+update_dbus_properties() {
+    local filename="$1"
+    local target="$2"
+    local transferStatus="$3"
+
+    echo "Filename: $filename  Target: $target  Status: $transferStatus"
+
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP FileName s "$filename"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP Target s "$target"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s "$transferStatus"
+}
+
+log_file="/tmp/scp.log"
+args_file="/tmp/scp.args"
+
+# Read the cmd_content from args_file
+cmd_content=$(cat "$args_file")
+
+# Create a log_file
+> "$log_file"
+
+# Read the content by line
+while IFS= read -r line; do
+    # Extract variable name and value using pattern matching
+    if [[ $line =~ ([a-zA-Z_][a-zA-Z0-9_]*)=(.*) ]]; then
+        var_name="${BASH_REMATCH[1]}"
+        var_value="${BASH_REMATCH[2]}"
+        # Assign the value to the corresponding variable
+        declare "$var_name=$var_value"
+    fi
+done <<< "$cmd_content"
+
+# Check if any required variable is empty
+if [ -z "$serverAddress" ] || [ -z "$username" ] || [ -z "$sourceFilePath" ] || [ -z "$target" ]; then
+    echo "One or more required variables are empty"
+    update_dbus_properties "$sourceFilePath" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+    exit 0
+fi
+
+filename=$(basename "$sourceFilePath")
+
+if [[ ! $filename =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+   echo "Invalid characters in filename: $filename Please provide a valid filename."
+   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+   exit 0
+fi
+
+if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
+   echo "Invalid characters in target: $target. Please provide a valid path."
+   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+   exit 0
+fi
+
+# Save original file descriptors
+exec 3<&0  # Save stdin to file descriptor 3
+exec 4>&1  # Save stdout to file descriptor 4
+
+# Run scp in the background and redirect its output to the log file
+scp_options="-v"
+scp_command="scp $scp_options $username@$serverAddress:$sourceFilePath $target >> \"$log_file\" 2>&1 < /dev/null &"
+eval "$scp_command"  # Use eval to execute the constructed command
+scp_pid=$! # Store the PID of the scp process
+
+# Wait for status indications in the log file
+timeout=5  # seconds
+intervals=0.1 # check the log file every 100 miliseconds
+
+# Set start and end times
+start_time=$(date +%s)
+end_time=$((start_time + timeout))
+
+# Run a loop until the end time is reached
+transfer_started=false
+while true; do
+    if grep -q "Sending file modes:" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.Started"
+        transfer_started=true
+        break
+    fi
+    if grep -q "password:" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnauthorizedClient"
+        break
+    fi
+    if grep -q "is not in the trusted hosts file" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
+        break
+    fi
+    if grep -q "host key mismatch for" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
+        break
+    fi
+    if grep -q "Connect failed: Error resolving" "$log_file"; then
+        transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
+        break
+    fi
+
+    # Check if end time has been reached
+    current_time=$(date +%s)
+    if [ "$current_time" -ge "$end_time" ]; then
+        echo "SCP process has timed out. Killing it."
+        kill "$scp_pid"
+        wait "$scp_pid"  # Wait for the process to finish cleaning up
+        break
+    fi
+
+    sleep "$intervals"
+done
+
+if [ -z "$transferStatus" ]; then
+    transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
+fi
+
+# Set TransferStatus properties
+update_dbus_properties "$filename" "$target" "$transferStatus"
+
+# Restore original file descriptors
+exec 0<&3  # Restore stdin from file descriptor 3
+exec 1>&4  # Restore stdout from file descriptor 4
+
+# Remove log and arg files
+rm "$log_file" "$args_file"
+
+# Check if transfer_started is true
+if [ "$transfer_started" = true ]; then
+    # Wait for the scp process to complete and get its exit status
+    wait "$scp_pid"
+    
+    # There is a known bug related to running Dropbear SCP from the BMC.
+    # When transferring files, the transfer may succeed, but an "Invalid Argument"
+    # error is generated at the end.
+    transferStatus="xyz.openbmc_project.Common.SCP.Status.Completed"
+    echo "Transfer completed"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s $transferStatus
+fi

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xyz/openbmc_project/Common/TFTP/server.hpp"
+#include "xyz/openbmc_project/Common/SCP/server.hpp"
 
 #include <sdbusplus/bus.hpp>
 
@@ -13,8 +14,9 @@ namespace software
 namespace manager
 {
 
-using DownloadInherit = sdbusplus::server::object_t<
-    sdbusplus::server::xyz::openbmc_project::common::TFTP>;
+using DownloadInherit = sdbusplus::server::object::object<
+    sdbusplus::xyz::openbmc_project::Common::server::TFTP,
+    sdbusplus::xyz::openbmc_project::Common::server::SCP>;
 
 /** @class Download
  *  @brief OpenBMC download software management implementation.
@@ -40,6 +42,58 @@ class Download : public DownloadInherit
      **/
     void downloadViaTFTP(std::string fileName,
                          std::string serverAddress) override;
+
+    /**
+    * @brief Implements the DownloadViaSCP dbus method functionality.
+    * User's password in not needed as a key-based authentication is used.
+    *
+    * @param[in] serverAddress - The SCP Server IP Address.
+    * @param[in] username - The username to authenticate the file transfer.
+    * @param[in] sourceFilePath - The file path on the remote server.
+    * @param[in] target - The target directory (local path) to apply the image.
+    **/
+    void downloadViaSCP(std::string serverAddress, std::string username,
+                        std::string sourceFilePath, std::string target) override;
+
+    /**
+     * @brief Add remote server public key to SSH known_host file
+     *
+     * @param[in] serverAddress  - The server IP address.
+     * @param[in] publicKeyStr   - The server's public key string ("<type> <key>").
+     **/
+    void addRemoteServerPublicKey(const std::string serverAddress,
+                                  const std::string publicKeyStr) override;
+
+    /**
+     * @brief Removes all the public keys of a remote server from SSH known_host file
+     *
+     * @param[in] serverAddress  - The server IP address.
+     **/
+    void revokeAllRemoteServerPublicKeys(const std::string serverAddress) override;
+
+    /**
+     * @brief Generates self key pair by using dropbearkey
+     * "dropbearkey -t ed25519 -f ~/.ssh/id_dropbear". In case the key pair already exists
+     * it returns the existing public key.
+     *
+     * @returns The generated public key string ("<type> <key>"), an empty string on failure.
+     **/
+    std::string generateSelfKeyPair() override;
+
+  private:
+    /**
+     * @brief Updates SCP status properties
+     *
+     * @param[in] newFileName   - The name of the file to transfer.
+     * @param[in] newTarget     - The target directory to apply the image.
+     * @param[in] newStatus     - The current status of the transfer.
+     **/  
+    inline void updateStatusProperties(std::string& fileName, std::string& target,
+                                       Status status) {
+        DownloadInherit::fileName(fileName);
+        DownloadInherit::target(target);
+        DownloadInherit::transferStatus(status);
+    }
 };
 
 } // namespace manager

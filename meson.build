@@ -59,6 +59,8 @@ conf.set_quoted('BMC_ROFS_PREFIX', get_option('media-dir') + '/rofs-')
 conf.set_quoted('OS_RELEASE_FILE', '/etc/os-release')
 # The dir where activation data is stored in files
 conf.set_quoted('PERSIST_DIR', '/var/lib/phosphor-bmc-code-mgmt/')
+# The name of the bmc software manufacturer
+conf.set_quoted('BMC_SOFTWARE_MANUFACTURER', get_option('bmc-software-manufacturer'))
 
 # Supported BMC layout types
 conf.set('STATIC_LAYOUT', get_option('bmc-layout').contains('static'))
@@ -146,6 +148,7 @@ unit_files = [
     'reboot-guard-disable.service.in',
     'reboot-guard-enable.service.in',
     'force-reboot.service.in',
+    'scp-transfer.service.in',
     'usr-local.mount.in',
     'xyz.openbmc_project.Software.Download.service.in',
     'xyz.openbmc_project.Software.Sync.service.in'
@@ -302,6 +305,11 @@ install_data('reset-cs0-aspeed',
 
 install_data('software.conf',
     install_dir: '/usr/lib/tmpfiles.d/'
+)
+
+install_data('scp-transfer',
+    install_mode: 'rwxr-xr-x',
+    install_dir: get_option('bindir')
 )
 
 foreach u : unit_files
