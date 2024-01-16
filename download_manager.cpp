@@ -25,7 +25,7 @@ namespace software
 namespace manager
 {
 
-using namespace sdbusplus::xyz::openbmc_project::Common::Error;
+using namespace sdbusplus::error::xyz::openbmc_project::common;
 PHOSPHOR_LOG2_USING;
 using namespace phosphor::logging;
 namespace fs = std::filesystem;
@@ -38,7 +38,7 @@ constexpr auto knownHostsFilePath = "/home/root/.ssh/known_hosts";
 
 void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
 {
-    using Argument = xyz::openbmc_project::Common::InvalidArgument;
+    using Argument = xyz::openbmc_project::common::InvalidArgument;
 
     // Sanitize the fileName string
     if (!fileName.empty())
