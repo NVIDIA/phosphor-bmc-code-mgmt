@@ -10,12 +10,12 @@
 
 #include <algorithm>
 #include <cstring>
-#include <elog-errors.hpp>
+#include <phosphor-logging/elog-errors.hpp>
 #include <experimental/filesystem>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <string>
-
+#include <xyz/openbmc_project/Software/Image/error.hpp>
 
 #include "pris_ap_fw_state_machine.hpp"
 #include "state_machine.hpp"

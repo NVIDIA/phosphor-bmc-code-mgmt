@@ -16,6 +16,7 @@
 #include <sdbusplus/exception.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 #include <regex>
+#include <filesystem>
 
 namespace
 {
@@ -30,6 +31,7 @@ namespace updater
 {
 
 using namespace phosphor::logging;
+namespace fs = std::filesystem;
 namespace softwareServer = sdbusplus::xyz::openbmc_project::Software::server;
 class ItemUpdater;
 
