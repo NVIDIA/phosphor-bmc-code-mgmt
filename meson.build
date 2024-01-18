@@ -321,6 +321,7 @@ executable(
     image_error_hpp,
     'image_manager.cpp',
     'image_manager_main.cpp',
+    'utils.cpp',
     'version.cpp',
     'watch.cpp',
     dependencies: [deps, ssl, cppfs],
