@@ -8,7 +8,7 @@
 #include "xyz/openbmc_project/Software/RedundancyPriority/server.hpp"
 
 #include <sdbusplus/server.hpp>
-#include <sdbusplus/timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 #include <xyz/openbmc_project/Software/Activation/server.hpp>
 #include <xyz/openbmc_project/Software/ActivationBlocksTransition/server.hpp>
@@ -354,7 +354,7 @@ class Activation : public ActivationInherit, public Flash
     bool unsecureFlashSuceeded = true;
 
     /** @brief Secure update timer which is used by ap_fw_state_machine */
-    std::unique_ptr<phosphor::Timer> secureUpdateTimer;
+    std::unique_ptr<boost::asio::steady_timer> secureUpdateTimer;
 
     /** @brief Sets an activation success or failure state according to the given argument
      *

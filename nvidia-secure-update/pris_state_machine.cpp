@@ -12,7 +12,9 @@
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/exception.hpp>
-#include <sdbusplus/timer.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/io_context.hpp>
+#include <sdbusplus/asio/connection.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 
 namespace phosphor
@@ -149,7 +151,7 @@ bool PrisStateMachine::RunCheckUpdateStatus()
     return flashSuceeded;
 }
 
-void PrisStateMachine::TimerCallBack()
+void PrisStateMachine::TimerCallBack(const boost::system::error_code& ec)
 {
     bool flashSuceeded = false;
 
@@ -311,10 +313,11 @@ void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
     {
         if (!myMachineContext.activationObject->secureUpdateTimer)
         {
+            sdbusplus::asio::connection& connectionBus =
+            static_cast<sdbusplus::asio::connection&>(myMachineContext.activationObject->bus);
+
             myMachineContext.activationObject->secureUpdateTimer =
-                std::make_unique<Timer>(
-                    myMachineContext.activationObject->bus.get_event(),
-                    PrisStateMachine::TimerCallBack);
+                std::make_unique<boost::asio::steady_timer>(connectionBus.get_io_context());
         }
 
         auto copyImageServiceFile =
@@ -343,8 +346,9 @@ void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
         }
         myMachineContext.activationObject->activationProgress->progress(30);
 
-        myMachineContext.activationObject->secureUpdateTimer->start(
-            duration_cast<microseconds>(seconds(timerExpirySecs)));
+        myMachineContext.activationObject->secureUpdateTimer->expires_after(
+            std::chrono::seconds(timerExpirySecs));
+        myMachineContext.activationObject->secureUpdateTimer->async_wait(TimerCallBack);
     }
     catch (const std::exception& e)
     {
@@ -411,8 +415,9 @@ void PrisStateMachine::StateSendCopyComplete([[maybe_unused]]MachineContext& ctx
                         std::mem_fn(&PrisStateMachine::HandleCecInterrupt),
                         this, std::placeholders::_1));
         }
-        myMachineContext.activationObject->secureUpdateTimer->start(
-            duration_cast<microseconds>(seconds(timerExpirySecs)));
+        myMachineContext.activationObject->secureUpdateTimer->expires_after(
+            std::chrono::seconds(timerExpirySecs));
+        myMachineContext.activationObject->secureUpdateTimer->async_wait(TimerCallBack);
     }
     catch (const std::exception& e)
     {
@@ -433,7 +438,7 @@ void PrisStateMachine::StateCheckUpdateStatus([[maybe_unused]]MachineContext& ct
 
     try
     {
-        myMachineContext.activationObject->secureUpdateTimer->stop();
+        myMachineContext.activationObject->secureUpdateTimer->cancel();
 
         retVal = deviceLayer->GetFWUpdateStatus();
 
