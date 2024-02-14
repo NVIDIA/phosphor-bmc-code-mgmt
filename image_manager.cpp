@@ -2,6 +2,7 @@
 
 #include "image_manager.hpp"
 
+#include "utils.hpp"
 #include "version.hpp"
 #include "watch.hpp"
 
@@ -83,6 +84,7 @@ std::vector<std::string> getSoftwareObjects(sdbusplus::bus_t& bus)
 bool fileIsCECImage(const std::string& tarFilePath)
 {
     std::ifstream binfile(tarFilePath, std::ifstream::in);
+    bool isCEC = false;
 
     if (binfile.is_open())
     {
@@ -92,37 +94,46 @@ bool fileIsCECImage(const std::string& tarFilePath)
         binfile.close();
         std::string str(header, 4);
         std::string strcec = CEC_FW_FILE_HEADER;
-
-        // Check if this file is a CEC image, starts with CEC_FW_FILE_HEADER
-        if (str == strcec)
-        {
-            // Move the file to CEC directory
-            std::ifstream src(tarFilePath, std::ios::binary);
-            if (!src.is_open())
-            {
-                return false;
-            }
-
-            std::ofstream dst(CEC_FW_FILE, std::ios::binary);
-            if (!dst.is_open())
-            {
-                src.close();
-                return false;
-            }
-
-            // Both files are open
-            dst << src.rdbuf();
-
-            // Close both files
-            src.close();
-            dst.close();
-
-            // Delete the original file
-            std::remove(tarFilePath.c_str());
-            return true;
-        }
+        isCEC = str == strcec;
     }
-    return false;
+    return isCEC;
+}
+
+bool copyAndRemoveCECImage(const std::string& tarFilePath)
+{
+    // Move the file to CEC directory
+    std::ifstream src(tarFilePath, std::ios::binary);
+    if (!src.is_open())
+    {
+        return false;
+    }
+
+    std::ofstream dst(CEC_FW_FILE, std::ios::binary);
+    if (!dst.is_open())
+    {
+        src.close();
+        return false;
+    }
+
+    // Both files are open
+    dst << src.rdbuf();
+
+    // Close both files
+    src.close();
+    dst.close();
+
+    // Delete the original file
+    std::remove(tarFilePath.c_str());
+    return true;
+}
+
+void resetTargetObjectPaths(sdbusplus::bus_t& bus)
+{
+    std::vector<sdbusplus::message::object_path> objectPaths = {};
+    utils::setProperty(
+        bus, "/xyz/openbmc_project/software",
+        "xyz.openbmc_project.Software.UpdatePolicy", "Targets",
+        objectPaths);
 }
 #endif
 } // namespace
@@ -139,12 +150,49 @@ int Manager::processImage(const std::string& tarFilePath)
     }
 
 #ifdef NVIDIA_SECURE_BOOT
+    auto objectPaths = utils::getProperty<std::vector<sdbusplus::message::object_path>>(
+        bus, "/xyz/openbmc_project/software",
+        "xyz.openbmc_project.Software.UpdatePolicy", "Targets");
+    std::string target = "";
+
+    if (!objectPaths.empty())
+    {
+        if (objectPaths.size() == 1)
+        {
+            target = objectPaths[0].filename();
+        }
+        else
+        {
+            error("Does not support {SIZE} targets", "SIZE", objectPaths.size());
+            resetTargetObjectPaths(bus);
+            return -1;
+        }
+    }
+
     // Check if tarFilePath is a CEC image
     if (fileIsCECImage(tarFilePath))
     {
-        info("Abort BMC update and initiate CEC update");
-        return 0;
+        if ((target == "" || target == "Bluefield_FW_ERoT") &&
+            copyAndRemoveCECImage(tarFilePath))
+        {
+            info("Abort BMC update and initiate CEC update");
+            return 0;
+        }
+        else
+        {
+            error("Wrong target object path {TARGET}", "TARGET", target);
+            resetTargetObjectPaths(bus);
+            return -1;
+        }
     }
+    else if (target == "Bluefield_FW_ERoT")
+    {
+        error("Wrong target object path {TARGET}", "TARGET", target);
+        resetTargetObjectPaths(bus);
+        return -1;
+    }
+
+    resetTargetObjectPaths(bus);
 #endif
 
     RemovablePath tarPathRemove(tarFilePath);

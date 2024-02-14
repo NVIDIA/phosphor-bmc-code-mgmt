@@ -4,9 +4,7 @@
 
 #include <functional>
 #include <string>
-#ifdef NVIDIA_SECURE_BOOT
-#include <experimental/filesystem>
-#endif
+#include <filesystem>
 
 namespace phosphor
 {
@@ -15,9 +13,7 @@ namespace software
 namespace manager
 {
 
-#ifdef NVIDIA_SECURE_BOOT
-namespace fsys = std::experimental::filesystem;
-#endif
+namespace fs = std::filesystem;
 
 /** @class Watch
  *
@@ -45,7 +41,7 @@ class Watch
      *  @param[in] imageCallback - The callback function for processing
      *                             the image
      */
-    Watch(sd_event* loop, const fsys::path& path,
+    Watch(sd_event* loop, const fs::path& path,
           std::function<int(std::string&)> imageCallback);
 #endif
 
@@ -60,7 +56,7 @@ class Watch
 
 #ifdef NVIDIA_SECURE_BOOT
     /** @brief File path to be watched */
-    fsys::path path;
+    fs::path path;
 #endif
 
   private:
@@ -76,7 +72,12 @@ class Watch
                         void* userdata);
 
 #ifdef NVIDIA_SECURE_BOOT
-    void createInotify(sd_event* loop, const fsys::path& path);
+    /** @brief adds watch on path given as an argument
+     *
+     *  @param[in] loop - sd-event object
+     *  @param[in] path - filepath object
+     */
+    void createInotify(sd_event* loop, const fs::path& path);
 #endif
 
     /** @brief image upload directory watch descriptor */

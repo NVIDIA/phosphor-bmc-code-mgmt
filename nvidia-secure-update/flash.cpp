@@ -260,7 +260,7 @@ void Activation::onStateChanges(sdbusplus::message::message& msg)
             return;
         }
 
-        secureUpdateTimer->stop();
+        secureUpdateTimer->cancel();
         Activation::unsubscribeFromSystemdSignals();
 
         if (newStateResult == "done")

@@ -8,7 +8,7 @@
 #include "xyz/openbmc_project/Software/RedundancyPriority/server.hpp"
 
 #include <sdbusplus/server.hpp>
-#include <sdbusplus/timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 #include <xyz/openbmc_project/Software/Activation/server.hpp>
 #include <xyz/openbmc_project/Software/ActivationBlocksTransition/server.hpp>
@@ -337,21 +337,29 @@ class Activation : public ActivationInherit, public Flash
     bool ubootEnvVarsUpdated = false;
 
 #ifdef NVIDIA_SECURE_BOOT
+    /** @brief SecureUpdate states */
     enum class SecureUpdate
     {
         IDLE,
         INPROGRESS
     };
 
+    /** @brief SecureUpdate current state */
     inline static SecureUpdate secureUpdateProgress = SecureUpdate::IDLE;
 
+    /** @brief The results of secure flash update procedure*/
     bool secureFlashSuceeded = true;
 
-    /** @brief Used for the non-cec flash update */
+    /** @brief The results of non-cec flash update */
     bool unsecureFlashSuceeded = true;
 
-    std::unique_ptr<phosphor::Timer> secureUpdateTimer;
+    /** @brief Secure update timer which is used by ap_fw_state_machine */
+    std::unique_ptr<boost::asio::steady_timer> secureUpdateTimer;
 
+    /** @brief Sets an activation success or failure state according to the given argument
+     *
+     * @param[in] failed - True for failure or false for success
+     */
     void failActivation(bool failed = true);
 
 #endif

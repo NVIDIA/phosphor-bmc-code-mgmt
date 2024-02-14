@@ -311,6 +311,7 @@ executable(
     'phosphor-version-software-manager',
     'image_manager.cpp',
     'image_manager_main.cpp',
+    'utils.cpp',
     'version.cpp',
     'watch.cpp',
     dependencies: [deps, ssl, cppfs],

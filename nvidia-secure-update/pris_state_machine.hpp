@@ -102,7 +102,7 @@ class PrisStateMachine : public StateMachine
         FuncTerminate;
 
   private:
-    static void TimerCallBack();
+    static void TimerCallBack(const boost::system::error_code& ec);
 
     static bool RunCheckUpdateStatus();
 

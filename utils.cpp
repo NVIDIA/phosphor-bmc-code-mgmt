@@ -2,7 +2,6 @@
 
 #include <unistd.h>
 #ifdef NVIDIA_SECURE_BOOT
-#include <iostream>
 #include <fstream>
 #endif
 

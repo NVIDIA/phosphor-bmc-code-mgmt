@@ -11,7 +11,6 @@
 
 #include <cstddef>
 #include <cstring>
-#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -25,7 +24,51 @@ namespace manager
 
 PHOSPHOR_LOG2_USING;
 using namespace std::string_literals;
-namespace fs = std::filesystem;
+
+#ifdef NVIDIA_SECURE_BOOT
+void Watch::createInotify(sd_event* loop, const fs::path& path)
+{
+    fd = inotify_init1(IN_NONBLOCK);
+    if (-1 == fd)
+    {
+        // Store a copy of errno, because the string creation below will
+        // invalidate errno due to one more system calls.
+        auto error = errno;
+        throw std::runtime_error("inotify_init1 failed, errno="s +
+                                 std::strerror(error));
+    }
+
+    wd = inotify_add_watch(fd, path.c_str(), IN_CLOSE_WRITE);
+    if (-1 == wd)
+    {
+        auto error = errno;
+        close(fd);
+        throw std::runtime_error("inotify_add_watch failed, errno="s +
+                                 std::strerror(error));
+    }
+
+    auto rc = sd_event_add_io(loop, nullptr, fd, EPOLLIN, callback, this);
+    if (0 > rc)
+    {
+        throw std::runtime_error("failed to add to event loop, rc="s +
+                                 std::strerror(-rc));
+    }
+}
+
+Watch::Watch(sd_event* loop, const fs::path& filePath,
+             std::function<int(std::string&)> imageCallback) :
+    path(filePath),
+    imageCallback(imageCallback)
+{
+    // Check if IMAGE DIR exists.
+    if (!fs::is_directory(path))
+    {
+        fs::create_directories(path);
+    }
+    fs::permissions(path, fs::perms::others_all | fs::perms::owner_all | fs::perms::group_all, fs::perm_options::add);
+    createInotify(loop, path);
+}
+#endif
 
 #ifdef NVIDIA_SECURE_BOOT
 void Watch::createInotify(sd_event* loop, const fsys::path& path)
@@ -84,7 +127,7 @@ Watch::Watch(sd_event* loop, std::function<int(std::string&)> imageCallback) :
     }
 
 #ifdef NVIDIA_SECURE_BOOT
-    fsys::path imgDirPathfsys(IMG_UPLOAD_DIR);
+    fs::path imgDirPathfs(IMG_UPLOAD_DIR);
 #endif
 
     fd = inotify_init1(IN_NONBLOCK);
@@ -152,8 +195,8 @@ int Watch::callback(sd_event_source* /* s */, int fd, uint32_t revents,
         {
 #ifdef NVIDIA_SECURE_BOOT
             auto userData = static_cast<Watch*>(userdata);
-            std::string filePath{""};
-             if (userData->path.string().empty())
+            std::string filePath;
+            if (userData->path.string().empty())
             {
                 auto tarballPath = std::string{IMG_UPLOAD_DIR} + '/' + event->name;
                 filePath = tarballPath;
