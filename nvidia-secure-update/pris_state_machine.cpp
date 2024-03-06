@@ -153,6 +153,14 @@ bool PrisStateMachine::RunCheckUpdateStatus()
 
 void PrisStateMachine::TimerCallBack(const boost::system::error_code& ec)
 {
+    /* The TimerCallback function is necessary only when the timer has expired.
+    Returns when the timer is cancelled */
+    if (ec == boost::asio::error::operation_aborted)
+    {
+        return;
+    }
+
+    log<level::ERR>("Secure Timer has expired");
     bool flashSuceeded = false;
 
     try
