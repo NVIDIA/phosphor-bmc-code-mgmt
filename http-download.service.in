@@ -1,0 +1,7 @@
+[Unit]
+Description=HTTP/HTTPS Download Service with CURL
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/http-download

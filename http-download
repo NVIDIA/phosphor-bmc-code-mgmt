@@ -1,0 +1,209 @@
+#!/bin/bash
+# HTTP/HTTPS Download script
+# This script facilitates file download using CURL over HTTP/HTTPS protocol.
+# It reads configuration details from an args file, initiates the download,
+# monitors the progress, and updates the download status.
+
+# Args File Format:
+#   serverAddress=<address>
+#   sourceFile=<source_file>
+#   destDir=<target_dest_file>
+#   protocol=<protocol_use_to_download>
+
+# Function to update DBus properties
+update_dbus_properties() {
+    local sourceFile="$1"
+    local destDir="$2"
+    local downloadStatus="$3"
+    local progress="$4"
+
+    echo "SourceFile: $sourceFile  DestDir: $destDir  Status: $downloadStatus Progress: $progress"
+
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress SourceFile s "$sourceFile"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress DestDir s "$destDir"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Status s "$downloadStatus"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Progress y "$progress"
+}
+
+logFile="/tmp/http.log"
+argsFile="/tmp/http.args"
+
+# Read the cmd_content from argsFile
+cmd_content=$(cat "$argsFile")
+
+# Create a logFile
+> "$logFile"
+
+# Read the content by line
+while IFS= read -r line; do
+    # Extract variable name and value using pattern matching
+    if [[ $line =~ ([a-zA-Z_][a-zA-Z0-9_]*)=(.*) ]]; then
+        var_name="${BASH_REMATCH[1]}"
+        var_value="${BASH_REMATCH[2]}"
+        # Assign the value to the corresponding variable
+        declare "$var_name=$var_value"
+    fi
+done <<< "$cmd_content"
+
+# Check if any required variable is empty
+if [ -z "$serverAddress" ] || [ -z "$sourceFile" ] || [ -z "$destDir" ] || [ -z "$protocol" ];
+then
+    echo "One or more required variables are empty"
+    update_dbus_properties "$sourceFile" "$destDir" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid" 0
+    exit 0
+fi
+
+filename=$(basename "$sourceFile")
+
+if [[ ! $filename =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+   echo "Invalid characters in filename: $filename Please provide a valid filename."
+   update_dbus_properties "$sourceFile" "$destDir" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid" 0
+   exit 0
+fi
+
+if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
+   echo "Invalid characters in destDir: $destDir. Please provide a valid path."
+   update_dbus_properties "$sourceFile" "$destDir" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid" 0
+   exit 0
+fi
+
+# Save original file descriptors
+exec 3<&0  # Save stdin to file descriptor 3
+exec 4>&1  # Save stdout to file descriptor 4
+
+# Run curl in the background and redirect its output to the log file
+if [[ $protocol == "HTTP" ]]; then
+    curlOptions="-vlf --max-time 900"
+    curlCommand="curl $curlOptions -o $destDir http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+fi
+
+if [[ $protocol == "HTTPS" ]]; then
+    curlOptions="-vlf --max-time 900 --capath /etc/ssl/certs/authority"
+    curlCommand="curl $curlOptions -o $destDir https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+fi
+
+echo $curlCommand
+eval "$curlCommand"  # Use eval to execute the constructed command
+curlPID=$! # Store the PID of the curl process
+
+# Wait for status indications in the log file
+timeout=10  # seconds
+intervals=0.1 # check the log file every 100 miliseconds
+
+# Set start and end times
+startTime=$(date +%s)
+endTime=$((startTime + timeout))
+
+# Run a loop until the end time is reached
+downloadStarted=false
+downloadStatus=""
+while true; do
+    if grep -q "No such file or directory" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
+        break
+    fi
+    if grep -q "Could not resolve host" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
+        break
+    fi
+    if grep -q "Couldn't connect to server" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
+        break
+    fi
+    if grep -q "404 Not Found" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
+        break
+    fi
+    if grep -q "SSL certificate problem" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.BadCert"
+        break
+    fi
+    if grep -q "Content-Length" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Started"
+        downloadStarted=true
+        break
+    fi
+
+    # Check if end time has been reached
+    currentTime=$(date +%s)
+    if [ "$currentTime" -ge "$endTime" ]; then
+        echo "CURL process has timed out. Killing it."
+        kill "$curlPID"
+        wait "$curlPID"  # Wait for the process to finish cleaning up
+        break
+    fi
+
+    sleep "$intervals"
+done
+
+if [ -z "$downloadStatus" ]; then
+    downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
+fi
+
+# Set DownloadStatus properties
+update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
+
+# Restore original file descriptors
+exec 0<&3  # Restore stdin from file descriptor 3
+exec 1>&4  # Restore stdout from file descriptor 4
+
+# Check if downloadStarted is true
+if [ "$downloadStarted" = true ]; then
+    # Wait for the curl process to complete and get its exit status
+    timeout=900  # seconds
+    intervals=30 # check the log file every 60 seconds
+    startTime=$(date +%s)
+    endTime=$((startTime + timeout))
+    downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.InProgress"
+
+    while true; do
+        if grep -q "returned error: 404" "$logFile"; then
+            downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
+            update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
+            break
+        fi
+
+        if grep -q "returned error" "$logFile"; then
+            downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
+            update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
+            break
+        fi
+
+        if grep -q "left intact" "$logFile"; then
+            downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
+            update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 100
+            break
+        fi
+
+        progress=$(tail -n 1 $logFile | awk '{print $((NF-11))}')
+        if [[ ! $progress =~ ^[0-9]+$ ]]; then
+            echo "Progress is not a number. Set it to 0"
+            progress=0
+        fi
+        echo "DownloadStatus=$downloadStatus Progress=$progress"
+
+        update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" "$progress"
+
+        # Check if end time has been reached
+        currentTime=$(date +%s)
+        if [ "$currentTime" -ge "$endTime" ]; then
+            echo "CURL download process has timed out. Killing it."
+            kill "$curlPID"
+            wait "$curlPID"  # Wait for the process to finish cleaning up
+            break
+        fi
+
+        sleep "$intervals"
+    done
+
+    if [ $downloadStatus == "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"  ]; then
+        echo "Download completed"
+    else
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
+        update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
+        echo "Download failed!!!"
+    fi
+fi
+
+# Remove log and arg files
+rm "$logFile" "$argsFile"

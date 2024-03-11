@@ -41,6 +41,8 @@ conf.set_quoted('SOFTWARE_CEC_UPDATE_OBJPATH', '/xyz/openbmc_project/software/BF
 conf.set_quoted('SYSTEMD_BUSNAME', 'org.freedesktop.systemd1')
 conf.set_quoted('SYSTEMD_PATH', '/org/freedesktop/systemd1')
 conf.set_quoted('SYSTEMD_INTERFACE', 'org.freedesktop.systemd1.Manager')
+conf.set_quoted('SYSTEMD_INTERFACE_UNIT', 'org.freedesktop.systemd1.Unit')
+conf.set_quoted('SYSTEMD_PROPERTY_IFACE', 'org.freedesktop.DBus.Properties')
 conf.set_quoted('VERSION_BUSNAME', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('VERSION_IFACE', 'xyz.openbmc_project.Software.Version')
 conf.set_quoted('EXTENDED_VERSION_IFACE', 'xyz.openbmc_project.Software.ExtendedVersion')
@@ -165,6 +167,7 @@ unit_files = [
     'reboot-guard-enable.service.in',
     'force-reboot.service.in',
     'scp-transfer.service.in',
+    'http-download.service.in',
     'usr-local.mount.in',
     'xyz.openbmc_project.Software.Download.service.in',
     'xyz.openbmc_project.Software.Sync.service.in'
@@ -348,6 +351,11 @@ install_data('software.conf',
 )
 
 install_data('scp-transfer',
+    install_mode: 'rwxr-xr-x',
+    install_dir: get_option('bindir')
+)
+
+install_data('http-download',
     install_mode: 'rwxr-xr-x',
     install_dir: get_option('bindir')
 )

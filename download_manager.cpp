@@ -35,6 +35,12 @@ constexpr auto scpArgsFile = "/tmp/scp.args";
 constexpr auto scpTransferService = "scp-transfer";
 constexpr auto knownHostsFilePath = "/home/root/.ssh/known_hosts";
 
+constexpr auto httpArgsFile = "/tmp/http.args";
+constexpr auto httpDownloadService = "http-download.service";
+
+constexpr auto ACTIVE_STATE = "active";
+constexpr auto ACTIVATING_STATE = "activating";
+
 void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
 {
     using Argument = xyz::openbmc_project::common::InvalidArgument;
@@ -121,6 +127,49 @@ void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
     }
 
     return;
+}
+
+bool isDownloadServiceRunning(const std::string& service)
+{
+    std::variant<std::string> currentState;
+    sdbusplus::message::object_path unitTargetPath;
+
+    auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                      SYSTEMD_INTERFACE, "GetUnit");
+    method.append(service);
+
+    try
+    {
+        auto result = bus.call(method);
+        result.read(unitTargetPath);
+    }
+    catch (const sdbusplus::exception::exception& e)
+    {
+        error("Error in GetUnit call: {ERROR}", "ERROR", e);
+        return false;
+    }
+
+    method = bus.new_method_call(
+        SYSTEMD_BUSNAME,
+        static_cast<const std::string&>(unitTargetPath).c_str(),
+        SYSTEMD_PROPERTY_IFACE, "Get");
+
+    method.append(SYSTEMD_INTERFACE_UNIT, "ActiveState");
+
+    try
+    {
+        auto result = bus.call(method);
+        result.read(currentState);
+    }
+    catch (const sdbusplus::exception::exception& e)
+    {
+        error("Error in ActiveState Get: {ERROR}", "ERROR", e);
+        return false;
+    }
+
+    const auto& currentStateStr = std::get<std::string>(currentState);
+    return currentStateStr == ACTIVE_STATE ||
+           currentStateStr == ACTIVATING_STATE;
 }
 
 bool isScpTransferServiceRunning()
@@ -372,6 +421,101 @@ std::string Download::generateSelfKeyPair()
     }
 
     return selfPublicKeyStr;
+}
+
+void Download::downloadViaHTTP(std::string serverAddress, bool secure,
+                               std::string sourceFile, std::string destDir)
+{
+    using Argument = xyz::openbmc_project::Common::InvalidArgument;
+    std::string fileName = sourceFile;
+
+    if (isDownloadServiceRunning(httpDownloadService))
+    {
+        error("HTTP download is already in progress");
+        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(("HTTP download is already in progress")));
+        return;
+    }
+
+    // Clean the previous status
+    updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Init);
+
+    if (sourceFile.empty())
+    {
+        error("sourceFile is empty");
+        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("sourceFile"),
+                              Argument::ARGUMENT_VALUE(sourceFile.c_str()));
+        return;
+    }
+
+    // Find the last occurrence of the directory separator character
+    size_t lastSeparatorPos = sourceFile.find_last_of("/");
+    if (lastSeparatorPos != std::string::npos)
+    {
+        // Extract the substring after the last separator position
+        fileName = sourceFile.substr(lastSeparatorPos + 1);
+    }
+
+    if (serverAddress.empty())
+    {
+        error("ServerAddress is empty");
+        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("ServerAddress"),
+                              Argument::ARGUMENT_VALUE(serverAddress.c_str()));
+        return;
+    }
+
+    if (destDir.empty())
+    {
+        error("DestFile is empty");
+        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("destDir"),
+                              Argument::ARGUMENT_VALUE(destDir.c_str()));
+        return;
+    }
+
+    if (!fs::exists(destDir))
+    {
+        error("Destination file including path does not exist");
+        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
+                              Argument::ARGUMENT_VALUE(destDir.c_str()));
+        return;
+    }
+
+    // Create an args file used by http-download service
+    std::ofstream argfile(httpArgsFile, std::ios::out | std::ios::trunc);
+    if (!argfile.is_open())
+    {
+        error("Failed to open an args file for http download");
+        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        elog<InternalFailure>();
+        return;
+    }
+
+    std::string cmdContent = "serverAddress=" + serverAddress + "\n"
+                             + "sourceFile=" + sourceFile+ "\n"
+                             + "destDir=" + destDir + "\n"
+                             + "protocol=" + (secure ? "HTTPS" : "HTTP") + "\n";
+
+    // Write cmdContent the args file
+    argfile << cmdContent;
+    argfile.close();
+
+    try
+    {
+        auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                          SYSTEMD_INTERFACE, "StartUnit");
+        method.append(httpDownloadService, "replace");
+        bus.call_noreply(method);
+    }
+    catch (const std::exception& e)
+    {
+        error("Failed to start http-download service");
+        updateDownloadStatusProperties(fileName, destDir, DownloadStatus::Failed);
+        elog<InternalFailure>();
+        return;
+    }
 }
 
 } // namespace manager

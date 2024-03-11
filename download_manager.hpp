@@ -2,6 +2,8 @@
 
 #include "xyz/openbmc_project/Common/SCP/server.hpp"
 #include "xyz/openbmc_project/Common/TFTP/server.hpp"
+#include "xyz/openbmc_project/Common/HTTP/server.hpp"
+#include "xyz/openbmc_project/Common/DownloadProgress/server.hpp"
 
 #include <sdbusplus/bus.hpp>
 
@@ -16,7 +18,9 @@ namespace manager
 
 using DownloadInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Common::server::TFTP,
-    sdbusplus::xyz::openbmc_project::Common::server::SCP>;
+    sdbusplus::xyz::openbmc_project::Common::server::SCP,
+    sdbusplus::xyz::openbmc_project::Common::server::HTTP,
+    sdbusplus::xyz::openbmc_project::Common::server::DownloadProgress>;
 
 /** @class Download
  *  @brief OpenBMC download software management implementation.
@@ -85,6 +89,17 @@ class Download : public DownloadInherit
      **/
     std::string generateSelfKeyPair() override;
 
+    /**
+    * @brief Implements the DownloadViaHTTP D-Bus method functionality.
+    *
+    * @param[in] serverAddress - The HTTP/HTTPS Server IP Address.
+    * @param[in] secure - The option to use secure HTTPS or not.
+    * @param[in] sourceFile - The source file on the remote server.
+    * @param[in] destDir - The destination directory (local path) to apply the image
+    **/
+    void downloadViaHTTP(std::string serverAddress, bool secure,
+                         std::string sourceFile, std::string destDir) override;
+
   private:
     /**
      * @brief Updates SCP status properties
@@ -99,6 +114,20 @@ class Download : public DownloadInherit
         DownloadInherit::fileName(fileName);
         DownloadInherit::target(target);
         DownloadInherit::transferStatus(status);
+    }
+
+    /**
+     * @brief Updates download status properties
+     *
+     * @param[in] sourceFile   - The name of the file to download.
+     * @param[in] destDir      - The destination directory to apply the image.
+     * @param[in] status       - The current status of the download.
+     **/
+    inline void updateDownloadStatusProperties(std::string& sourceFile, std::string& destDir,
+                                               DownloadStatus status) {
+        DownloadInherit::sourceFile(sourceFile);
+        DownloadInherit::destDir(destDir);
+        DownloadInherit::status(status);
     }
 };
 
