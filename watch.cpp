@@ -70,51 +70,6 @@ Watch::Watch(sd_event* loop, const fs::path& filePath,
 }
 #endif
 
-#ifdef NVIDIA_SECURE_BOOT
-void Watch::createInotify(sd_event* loop, const fsys::path& path)
-{
-    fd = inotify_init1(IN_NONBLOCK);
-    if (-1 == fd)
-    {
-        // Store a copy of errno, because the string creation below will
-        // invalidate errno due to one more system calls.
-        auto error = errno;
-        throw std::runtime_error("inotify_init1 failed, errno="s +
-                                 std::strerror(error));
-    }
-
-    wd = inotify_add_watch(fd, path.c_str(), IN_CLOSE_WRITE);
-    if (-1 == wd)
-    {
-        auto error = errno;
-        close(fd);
-        throw std::runtime_error("inotify_add_watch failed, errno="s +
-                                 std::strerror(error));
-    }
-
-    auto rc = sd_event_add_io(loop, nullptr, fd, EPOLLIN, callback, this);
-    if (0 > rc)
-    {
-        throw std::runtime_error("failed to add to event loop, rc="s +
-                                 std::strerror(-rc));
-    }
-}
-
-Watch::Watch(sd_event* loop, const fsys::path& filePath,
-             std::function<int(std::string&)> imageCallback) :
-    path(filePath),
-    imageCallback(imageCallback)
-{
-    // Check if IMAGE DIR exists.
-    if (!fsys::is_directory(path))
-    {
-        fsys::create_directories(path);
-    }
-    fsys::permissions(path, fsys::perms::add_perms | fsys::perms::others_all | fsys::perms::owner_all | fsys::perms::group_all);
-    createInotify(loop, path);
-}
-#endif
-
 Watch::Watch(sd_event* loop, std::function<int(std::string&)> imageCallback) :
     imageCallback(imageCallback)
 {
