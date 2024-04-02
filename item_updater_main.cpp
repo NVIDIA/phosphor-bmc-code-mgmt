@@ -15,15 +15,7 @@ boost::asio::io_context& getIOContext()
 
 int main()
 {
-#ifdef NVIDIA_SECURE_BOOT
-    auto bus = sdbusplus::bus::new_default();
-
-    sd_event* loop = nullptr;
-
-    sd_event_default(&loop);
-#else
     sdbusplus::asio::connection bus(getIOContext());
-#endif
 
     // Add sdbusplus ObjectManager.
     sdbusplus::server::manager_t objManager(bus, SOFTWARE_OBJPATH);
@@ -32,15 +24,7 @@ int main()
 
     bus.request_name(BUSNAME_UPDATER);
 
-#ifdef NVIDIA_SECURE_BOOT
-    bus.attach_event(loop, SD_EVENT_PRIORITY_NORMAL);
-
-    sd_event_loop(loop);
-
-    sd_event_unref(loop);
-#else
     getIOContext().run();
-#endif
 
     return 0;
 }

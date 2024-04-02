@@ -302,9 +302,8 @@ auto Activation::requestedActivation(RequestedActivations value)
 #ifdef NVIDIA_SECURE_BOOT
     if (secureUpdateProgress != SecureUpdate::IDLE)
     {
-        error("Error already an update in progress.");
+        error("Error an update is in progress.");
         report<InternalFailure>();
-        return softwareServer::Activation::requestedActivation(softwareServer::Activation::RequestedActivations::None);
     }
 #endif
     if ((value == softwareServer::Activation::RequestedActivations::Active) &&

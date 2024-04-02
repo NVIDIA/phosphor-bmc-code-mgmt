@@ -1,9 +1,7 @@
 #include "utils.hpp"
 
 #include <unistd.h>
-#ifdef NVIDIA_SECURE_BOOT
 #include <fstream>
-#endif
 
 #include <phosphor-logging/lg2.hpp>
 
