@@ -121,6 +121,8 @@ endif
 
 configure_file(output: 'config.h', configuration: conf)
 
+boost_dep = dependency('boost')
+
 sdbusplus_dep = dependency('sdbusplus')
 sdbusplusplus_prog = find_program('sdbus++', native: true)
 sdbuspp_gen_meson_prog = find_program('sdbus++-gen-meson', native: true)
@@ -303,7 +305,7 @@ executable(
 executable(
     'phosphor-image-updater',
     image_updater_sources,
-    dependencies: [deps, ssl, cppfs],
+    dependencies: [deps, ssl, boost_dep, cppfs],
     install: true
 )
 
