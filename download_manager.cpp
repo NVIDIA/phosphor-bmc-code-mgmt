@@ -32,7 +32,7 @@ namespace fs = std::filesystem;
 sdbusplus::bus::bus bus = sdbusplus::bus::new_default();
 
 constexpr auto scpArgsFile = "/tmp/scp.args";
-constexpr auto scpTransferService = "scp-transfer";
+constexpr auto scpTransferService = "scp-transfer.service";
 constexpr auto knownHostsFilePath = "/home/root/.ssh/known_hosts";
 
 constexpr auto httpArgsFile = "/tmp/http.args";
@@ -172,26 +172,13 @@ bool isDownloadServiceRunning(const std::string& service)
            currentStateStr == ACTIVATING_STATE;
 }
 
-bool isScpTransferServiceRunning()
-{
-    // Use the 'pgrep' command to check if the scp-transfer service is running
-    std::string command = "pgrep " + std::string(scpTransferService);
-    int result = std::system(command.c_str());
-
-    // If 'pgrep' returns 0, the service is running
-    if (result == 0)
-        return true;
-
-    return false;
-}
-
 void Download::downloadViaSCP(std::string serverAddress, std::string username,
                               std::string sourceFilePath, std::string target)
 {
     using Argument = xyz::openbmc_project::Common::InvalidArgument;
     std::string fileName = sourceFilePath;
 
-    if (isScpTransferServiceRunning())
+    if (isDownloadServiceRunning(scpTransferService))
     {
         error("SCP tranfer is already in progress");
         elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(
@@ -200,12 +187,12 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     }
 
     // Clean the previous status
-    updateStatusProperties(sourceFilePath, target, Status::None);
+    updateDownloadStatusProperties(sourceFilePath, target, DownloadStatus::Init);
 
     if (sourceFilePath.empty())
     {
         error("sourceFilePath is empty");
-        updateStatusProperties(sourceFilePath, target, Status::Invalid);
+        updateDownloadStatusProperties(sourceFilePath, target, DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("sourceFilePath"),
                               Argument::ARGUMENT_VALUE(sourceFilePath.c_str()));
         return;
@@ -222,7 +209,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (serverAddress.empty())
     {
         error("ServerAddress is empty");
-        updateStatusProperties(fileName, target, Status::Invalid);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("ServerAddress"),
                               Argument::ARGUMENT_VALUE(serverAddress.c_str()));
         return;
@@ -231,7 +218,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (target.empty())
     {
         error("Target is empty");
-        updateStatusProperties(fileName, target, Status::Invalid);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(target.c_str()));
         return;
@@ -240,7 +227,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (!fs::exists(target))
     {
         error("Target does not exist");
-        updateStatusProperties(fileName, target, Status::Invalid);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(target.c_str()));
         return;
@@ -249,7 +236,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (username.empty())
     {
         error("Username is empty");
-        updateStatusProperties(fileName, target, Status::Invalid);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("username"),
                               Argument::ARGUMENT_VALUE(username.c_str()));
         return;
@@ -260,7 +247,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (!argfile.is_open())
     {
         error("Failed to open an args file");
-        updateStatusProperties(fileName, target, Status::Invalid);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
         elog<InternalFailure>();
         return;
     }
@@ -278,13 +265,13 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     {
         auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
                                           SYSTEMD_INTERFACE, "StartUnit");
-        method.append(scpTransferService + std::string(".service"), "replace");
+        method.append(scpTransferService, "replace");
         bus.call_noreply(method);
     }
     catch (const std::exception& e)
     {
         error("Failed to start scp-transfer service");
-        updateStatusProperties(fileName, target, Status::Failed);
+        updateDownloadStatusProperties(fileName, target, DownloadStatus::Failed);
         elog<InternalFailure>();
         return;
     }

@@ -102,21 +102,6 @@ class Download : public DownloadInherit
 
   private:
     /**
-     * @brief Updates SCP status properties
-     *
-     * @param[in] newFileName   - The name of the file to transfer.
-     * @param[in] newTarget     - The target directory to apply the image.
-     * @param[in] newStatus     - The current status of the transfer.
-     **/
-    inline void updateStatusProperties(std::string& fileName,
-                                       std::string& target, Status status)
-    {
-        DownloadInherit::fileName(fileName);
-        DownloadInherit::target(target);
-        DownloadInherit::transferStatus(status);
-    }
-
-    /**
      * @brief Updates download status properties
      *
      * @param[in] sourceFile   - The name of the file to download.

@@ -18,9 +18,9 @@ update_dbus_properties() {
 
     echo "Filename: $filename  Target: $target  Status: $transferStatus"
 
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP FileName s "$filename"
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP Target s "$target"
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s "$transferStatus"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress SourceFile s "$filename"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress DestDir s "$target"
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Status s "$transferStatus"
 }
 
 log_file="/tmp/scp.log"
@@ -46,7 +46,7 @@ done <<< "$cmd_content"
 # Check if any required variable is empty
 if [ -z "$serverAddress" ] || [ -z "$username" ] || [ -z "$sourceFilePath" ] || [ -z "$target" ]; then
     echo "One or more required variables are empty"
-    update_dbus_properties "$sourceFilePath" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+    update_dbus_properties "$sourceFilePath" "$target" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
     exit 0
 fi
 
@@ -54,13 +54,13 @@ filename=$(basename "$sourceFilePath")
 
 if [[ ! $filename =~ ^[a-zA-Z0-9_.-]+$ ]]; then
    echo "Invalid characters in filename: $filename Please provide a valid filename."
-   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
    exit 0
 fi
 
 if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
    echo "Invalid characters in target: $target. Please provide a valid path."
-   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.SCP.Status.Invalid"
+   update_dbus_properties "$filename" "$target" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
    exit 0
 fi
 
@@ -75,7 +75,7 @@ eval "$scp_command"  # Use eval to execute the constructed command
 scp_pid=$! # Store the PID of the scp process
 
 # Wait for status indications in the log file
-timeout=5  # seconds
+timeout=10  # seconds
 intervals=0.1 # check the log file every 100 miliseconds
 
 # Set start and end times
@@ -86,24 +86,24 @@ end_time=$((start_time + timeout))
 transfer_started=false
 while true; do
     if grep -q "Sending file modes:" "$log_file"; then
-        transferStatus="xyz.openbmc_project.Common.SCP.Status.Started"
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Started"
         transfer_started=true
         break
     fi
     if grep -q "password:" "$log_file"; then
-        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnauthorizedClient"
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnauthorizedClient"
         break
     fi
     if grep -q "is not in the trusted hosts file" "$log_file"; then
-        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
         break
     fi
     if grep -q "host key mismatch for" "$log_file"; then
-        transferStatus="xyz.openbmc_project.Common.SCP.Status.UnknownHost"
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
         break
     fi
     if grep -q "Connect failed: Error resolving" "$log_file"; then
-        transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
         break
     fi
 
@@ -120,7 +120,7 @@ while true; do
 done
 
 if [ -z "$transferStatus" ]; then
-    transferStatus="xyz.openbmc_project.Common.SCP.Status.Invalid"
+    transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
 fi
 
 # Set TransferStatus properties
@@ -141,7 +141,8 @@ if [ "$transfer_started" = true ]; then
     # There is a known bug related to running Dropbear SCP from the BMC.
     # When transferring files, the transfer may succeed, but an "Invalid Argument"
     # error is generated at the end.
-    transferStatus="xyz.openbmc_project.Common.SCP.Status.Completed"
+    transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
     echo "Transfer completed"
-    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.SCP TransferStatus s $transferStatus
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Status s $transferStatus
+    busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Progress y 100
 fi
