@@ -379,7 +379,7 @@ void PrisAPFWStateMachine::StateCopyImage(MachineContext& ctx)
         if (!fwUpdateManager->secureUpdateTimer)
         {
             fwUpdateManager->secureUpdateTimer =
-                std::make_unique<Timer>(
+                std::make_unique<sdbusplus::Timer>(
                     fwUpdateManager->bus.get_event(),
                     PrisAPFWStateMachine::TimerCallBack);
         }
