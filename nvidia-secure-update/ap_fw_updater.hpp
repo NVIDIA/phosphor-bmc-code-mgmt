@@ -78,7 +78,7 @@ private:
 
     bool secureFlashSuceeded = true;
 
-    std::unique_ptr<phosphor::Timer> secureUpdateTimer;
+    std::unique_ptr<sdbusplus::Timer> secureUpdateTimer;
 
     sdbusplus::bus::bus& bus;
 

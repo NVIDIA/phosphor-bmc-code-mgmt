@@ -58,7 +58,7 @@ static constexpr auto busIdentifier = CEC_BUS_IDENTIFIER;
 
 static constexpr auto deviceAddrress = CEC_DEVICE_ADDRESS;
 
-std::unique_ptr<phosphor::Timer> checkTimer;
+std::unique_ptr<sdbusplus::Timer> checkTimer;
 
 static constexpr uint8_t checkTimerExpiry{60};
 
@@ -576,7 +576,7 @@ int main([[maybe_unused]]int argc, [[maybe_unused]]char** argv)
         SD_EVENT_PRIORITY_NORMAL);
 
     phosphor::NvidiaSecureUpdate::checkTimer =
-        std::make_unique<phosphor::Timer>(
+        std::make_unique<sdbusplus::Timer>(
             phosphor::NvidiaSecureUpdate::bus.get_event(),
             phosphor::NvidiaSecureUpdate::TimerCallBack);
 
