@@ -90,7 +90,6 @@ auto Activation::activation(Activations value) -> Activations
 
     if (value == softwareServer::Activation::Activations::Activating)
     {
-
 #ifdef NVIDIA_SECURE_BOOT
         if (secureUpdateProgress != SecureUpdate::IDLE)
         {
@@ -174,13 +173,13 @@ auto Activation::activation(Activations value) -> Activations
         }
 
         bool cecStatus = utils::checkCECExist();
-        //Set progress for non-cec update
-        if(unsecureFlashSuceeded && !cecStatus) {
+        // Set progress for non-cec update
+        if (unsecureFlashSuceeded && !cecStatus)
+        {
             activationProgress->progress(100);
             activationBlocksTransition.reset(nullptr);
         }
 #endif
-
 
 #if defined UBIFS_LAYOUT || defined MMC_LAYOUT
 

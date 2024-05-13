@@ -25,7 +25,6 @@ void MachineContext::SetMachineSucceeded(std::string& msg)
     messageStr = msg;
 }
 
-
 void MachineContext::SetData(const std::string& key, const std::any& obj)
 {
     dataMap[key] = obj;

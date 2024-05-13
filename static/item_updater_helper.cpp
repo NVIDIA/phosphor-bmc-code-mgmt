@@ -32,7 +32,7 @@ void Helper::factoryReset()
 
     // Set vendorfieldmode=disabled env in U-Boot.
     // This will disable the vendor field mode settings.
-    utils::execute("/sbin/fw_setenv","vendorfieldmode", "disabled");
+    utils::execute("/sbin/fw_setenv", "vendorfieldmode", "disabled");
 #else
     // Set openbmconce=factory-reset env in U-Boot.
     // The init will cleanup rwfs during boot.

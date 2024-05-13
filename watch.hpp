@@ -2,9 +2,9 @@
 
 #include <systemd/sd-event.h>
 
+#include <filesystem>
 #include <functional>
 #include <string>
-#include <filesystem>
 
 namespace phosphor
 {

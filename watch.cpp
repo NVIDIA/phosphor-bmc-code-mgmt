@@ -57,15 +57,17 @@ void Watch::createInotify(sd_event* loop, const fs::path& path)
 
 Watch::Watch(sd_event* loop, const fs::path& filePath,
              std::function<int(std::string&)> imageCallback) :
-    path(filePath),
-    imageCallback(imageCallback)
+    path(filePath), imageCallback(imageCallback)
 {
     // Check if IMAGE DIR exists.
     if (!fs::is_directory(path))
     {
         fs::create_directories(path);
     }
-    fs::permissions(path, fs::perms::others_all | fs::perms::owner_all | fs::perms::group_all, fs::perm_options::add);
+    fs::permissions(path,
+                    fs::perms::others_all | fs::perms::owner_all |
+                        fs::perms::group_all,
+                    fs::perm_options::add);
     createInotify(loop, path);
 }
 #endif
@@ -153,7 +155,8 @@ int Watch::callback(sd_event_source* /* s */, int fd, uint32_t revents,
             std::string filePath;
             if (userData->path.string().empty())
             {
-                auto tarballPath = std::string{IMG_UPLOAD_DIR} + '/' + event->name;
+                auto tarballPath = std::string{IMG_UPLOAD_DIR} + '/' +
+                                   event->name;
                 filePath = tarballPath;
             }
             else

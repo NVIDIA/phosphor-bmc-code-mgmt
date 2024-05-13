@@ -63,7 +63,8 @@ void ItemUpdater::createActivation(sdbusplus::message_t& msg)
 #ifdef NVIDIA_SECURE_BOOT
         if (intf.first == "xyz.openbmc_project.Software.Activation")
         {
-            log<level::INFO>("Ignore callback for the activation obj addition.");
+            log<level::INFO>(
+                "Ignore callback for the activation obj addition.");
             return;
         }
 #endif
@@ -869,7 +870,7 @@ bool ItemUpdater::checkImage(const std::string& filePath,
 #ifdef NVIDIA_SECURE_BOOT
             if (bmcImage == phosphor::software::image::SECURE_IMAGE_NAME)
             {
-		valid = false;
+                valid = false;
             }
 #else
             valid = false;

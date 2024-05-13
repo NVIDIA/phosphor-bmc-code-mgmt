@@ -1,15 +1,16 @@
 #pragma once
 
 #include "i2c_comm_lib.hpp"
-//#include "images.hpp"
-#include "state_machine.hpp"
+// #include "images.hpp"
 #include "ap_fw_updater.hpp"
+#include "state_machine.hpp"
 
 #include <stdio.h>
 
+#include <sdbusplus/bus/match.hpp>
+
 #include <array>
 #include <functional>
-#include <sdbusplus/bus/match.hpp>
 #include <typeinfo>
 
 namespace phosphor
@@ -27,7 +28,8 @@ static const std::string keyActualFWSize{"fw_actual_size"};
 
 static const std::string keyUpdateManager{"fw_update_manager"};
 
-static const std::string keyCopyServiceNameString{"fw_copy_service_name_string"};
+static const std::string keyCopyServiceNameString{
+    "fw_copy_service_name_string"};
 
 static const std::string checkUpdateInProgress{"AP FIRMWARE UPDATE IN PROGESS"};
 
@@ -76,7 +78,8 @@ class PrisAPFWStateMachine : public StateMachine
     void StateTerminate(MachineContext&);
 
     // Define StateFunction object which will be called from the StateMachine
-    StateFuncEx<PrisAPFWStateMachine, MachineContext, &PrisAPFWStateMachine::StateIdle>
+    StateFuncEx<PrisAPFWStateMachine, MachineContext,
+                &PrisAPFWStateMachine::StateIdle>
         FuncIdle;
 
     StateFuncEx<PrisAPFWStateMachine, MachineContext,
@@ -104,7 +107,7 @@ class PrisAPFWStateMachine : public StateMachine
 
     static bool RunCheckUpdateStatus();
 
-    //void HandleCecInterrupt(sdbusplus::message::message& msg);
+    // void HandleCecInterrupt(sdbusplus::message::message& msg);
 
   private:
     virtual const std::vector<StateFunc*>& GetStateFlow();
@@ -118,8 +121,7 @@ class PrisAPFWStateMachine : public StateMachine
 
     std::vector<StateFunc*> stateFlowSequence;
 
-  public:   
-
+  public:
     static constexpr uint8_t busIdentifier = CEC_BUS_IDENTIFIER;
 
     static constexpr uint8_t deviceAddrress = CEC_DEVICE_ADDRESS;
@@ -139,6 +141,6 @@ class PrisAPFWStateMachine : public StateMachine
     UpdateManager* fwUpdateManager;
 };
 
-} // namespace updater
+} // namespace firmwareupdater
 } // namespace software
 } // namespace phosphor

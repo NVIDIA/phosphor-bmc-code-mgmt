@@ -36,8 +36,7 @@ class StateFuncEx : public StateFunc
 
         if (derivedSM == nullptr)
         {
-            throw std::runtime_error(
-                "RunState: Error, the state class object \
+            throw std::runtime_error("RunState: Error, the state class object \
                                                is of different type.");
         }
 
@@ -64,14 +63,11 @@ class StateFuncEx : public StateFunc
  */
 class StateMachine
 {
-
   public:
     StateMachine(uint8_t maxStates, MachineContext& ctx,
                  uint8_t initialState = 0);
 
-    virtual ~StateMachine()
-    {
-    }
+    virtual ~StateMachine() {}
 
     uint8_t GetCurrentState()
     {

@@ -4,14 +4,14 @@
 #include "watch.hpp"
 
 #include <CLI/CLI.hpp>
-#include <chrono>
 #include <com/nvidia/Secureboot/Cec/server.hpp>
-#include <map>
 #include <nlohmann/json.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 
+#include <chrono>
+#include <map>
 
 using namespace phosphor::logging;
 
@@ -33,7 +33,7 @@ using namespace std::chrono;
 } // namespace NvidiaBootComplete
 } // namespace phosphor
 
-int main([[maybe_unused]]int argc, [[maybe_unused]]char** argv)
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
     I2CCommLib deviceLayer(phosphor::NvidiaBootComplete::busIdentifier,
                            phosphor::NvidiaBootComplete::deviceAddrress);

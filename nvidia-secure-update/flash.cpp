@@ -9,14 +9,15 @@
 #include "state_machine.hpp"
 #include "version.hpp"
 
-#include <experimental/filesystem>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/exception.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
-#include <regex>
+
+#include <experimental/filesystem>
 #include <filesystem>
+#include <regex>
 
 namespace
 {
@@ -42,24 +43,24 @@ inline void logAndThrowError(std::string err_str, std::string additional_info)
 {
     err_str += additional_info;
     log<level::ERR>(err_str.c_str());
-    throw std::runtime_error(err_str);   
+    throw std::runtime_error(err_str);
 }
 
-void tokenize(std::string const &strIn, std::vector<std::string> &out)
+void tokenize(const std::string& strIn, std::vector<std::string>& out)
 {
     const std::regex oldFormatReg("(\\d*)[.](\\d*)[.](\\d*)");
     const std::regex newFormatReg("[a-zA-Z0-9]+[-](\\d{2})[.](\\d{2})[-](.*)");
     std::smatch found;
-    
+
     // If the old format of x.x.x-N
     if (std::regex_search(strIn, found, oldFormatReg))
     {
-        for (unsigned i = 1; i < found.size(); ++i) 
+        for (unsigned i = 1; i < found.size(); ++i)
         {
             out.push_back(found.str(i));
         }
     }
-    // new formar ID-yy.mm-N-rcN or ID-yy.mm-N_br 
+    // new formar ID-yy.mm-N-rcN or ID-yy.mm-N_br
     else if (std::regex_search(strIn, found, newFormatReg))
     {
         for (unsigned i = 1; i < found.size(); ++i)
@@ -69,53 +70,64 @@ void tokenize(std::string const &strIn, std::vector<std::string> &out)
     }
 }
 
-//This function blocks the update of BMC image with version lower than 2.8.2-XYZ.
-// This is because that from version 2.8.1 we have new architecture, downgrading will brick the device
-//Example: In 2.8.2-XYZ , MajorVersion - 2 , MinorVersion - 8 and Version - 2
-// SubVersion - XYZ
-//Versions lower than 2.8.2-XYZ like 2.8.1-XYZ , 2.8.0-XYZ etc will be blocked
-//from getting upgraded.
-// This function support the new format ID-yy.mm-N-rcN or ID-yy.mm-N-br
-// Example: BF3BMC-22.10-1, MajorVersion - 22 , MinorVersion - 10 and Version - 1
+// This function blocks the update of BMC image with version lower
+// than 2.8.2-XYZ.
+//  This is because that from version 2.8.1 we have new architecture,
+//  downgrading will brick the device
+// Example: In 2.8.2-XYZ , MajorVersion - 2 , MinorVersion - 8 and Version - 2
+//  SubVersion - XYZ
+// Versions lower than 2.8.2-XYZ like 2.8.1-XYZ , 2.8.0-XYZ etc will be blocked
+// from getting upgraded.
+//  This function support the new format ID-yy.mm-N-rcN or ID-yy.mm-N-br
+//  Example: BF3BMC-22.10-1, MajorVersion - 22 , MinorVersion - 10 and Version -
+//  1
 bool stopDowngrade(fs::path manifestPath)
 {
     try
     {
         if (!fs::is_regular_file(manifestPath))
         {
-           logAndThrowError("Error No manifest file, filename: ", manifestPath);
+            logAndThrowError("Error No manifest file, filename: ",
+                             manifestPath);
         }
 
         // Get version
-        auto version = phosphor::software::manager::Version::getValue(manifestPath.string(), "version");
+        auto version = phosphor::software::manager::Version::getValue(
+            manifestPath.string(), "version");
         if (version.empty())
         {
-           logAndThrowError("Error unable to read version from manifest file", version);
+            logAndThrowError("Error unable to read version from manifest file",
+                             version);
         }
 
         std::vector<std::string> versionVector;
         tokenize(version, versionVector);
 
-        if(versionVector.size() != 3)
+        if (versionVector.size() != 3)
         {
-           logAndThrowError("Error incorrect version format from manifest file, version: ", version);
+            logAndThrowError(
+                "Error incorrect version format from manifest file, version: ",
+                version);
         }
 
         int majorVersionInt = std::stoi(versionVector[0]);
         int minorVersionInt = std::stoi(versionVector[1]);
 
         std::string lastVer = versionVector[2];
-        // In case there are no digits at the beginning of lastVer, versionInt is 0
+        // In case there are no digits at the beginning of lastVer, versionInt
+        // is 0
         int versionInt = std::atoi(lastVer.c_str());
 
         bool cecStatus = utils::checkCECExist();
-        if(cecStatus == true)
+        if (cecStatus == true)
         {
-            if(majorVersionInt < 2 ||
-            (majorVersionInt == 2 && minorVersionInt < 8) ||
-            (majorVersionInt == 2 && minorVersionInt == 8 && versionInt < 2))
+            if (majorVersionInt < 2 ||
+                (majorVersionInt == 2 && minorVersionInt < 8) ||
+                (majorVersionInt == 2 && minorVersionInt == 8 &&
+                 versionInt < 2))
             {
-                std::string err_str{"Error cannot downgrade to lower version: "};
+                std::string err_str{
+                    "Error cannot downgrade to lower version: "};
                 err_str += version;
                 log<level::ERR>(err_str.c_str());
 
@@ -124,11 +136,13 @@ bool stopDowngrade(fs::path manifestPath)
         }
         else
         {
-            if(majorVersionInt < 2 ||
-            (majorVersionInt == 2 && minorVersionInt < 8) ||
-            (majorVersionInt == 2 && minorVersionInt == 8 && versionInt < 4))
+            if (majorVersionInt < 2 ||
+                (majorVersionInt == 2 && minorVersionInt < 8) ||
+                (majorVersionInt == 2 && minorVersionInt == 8 &&
+                 versionInt < 4))
             {
-                std::string err_str{"Error cannot downgrade to lower version: "};
+                std::string err_str{
+                    "Error cannot downgrade to lower version: "};
                 err_str += version;
                 log<level::ERR>(err_str.c_str());
 
@@ -149,16 +163,17 @@ bool stopDowngrade(fs::path manifestPath)
 void Activation::flashWrite()
 {
     bool cecStatus = utils::checkCECExist();
-    if(cecStatus == true)
+    if (cecStatus == true)
     {
         try
         {
             fs::path uploadDir(IMG_UPLOAD_DIR);
 
             fs::path manifestPath = uploadDir / versionId / MANIFEST_FILE_NAME;
-            if(stopDowngrade(manifestPath))
+            if (stopDowngrade(manifestPath))
             {
-            throw std::runtime_error("Error in stop Downgrade - cec status true");
+                throw std::runtime_error(
+                    "Error in stop Downgrade - cec status true");
             }
 
             secureFlashSuceeded = true;
@@ -181,10 +196,11 @@ void Activation::flashWrite()
 
             sUpdateMachineContext->SetData(keyBmcImgSize, fSize);
 
-            sUpdateMachineContext->SetData(keyBmcImgName, bmcImageName.string());
+            sUpdateMachineContext->SetData(keyBmcImgName,
+                                           bmcImageName.string());
 
-            fwUpdateMachine =
-                std::make_unique<PrisStateMachine>(*(sUpdateMachineContext.get()));
+            fwUpdateMachine = std::make_unique<PrisStateMachine>(
+                *(sUpdateMachineContext.get()));
 
             fwUpdateMachine->TriggerFWUpdate();
 
@@ -193,15 +209,15 @@ void Activation::flashWrite()
             bool smRunSuceeded = std::get<0>(ret);
             std::string msg{" "};
 
-            if(smRunSuceeded)
+            if (smRunSuceeded)
             {
-                //FW update triggered successfully.
+                // FW update triggered successfully.
                 return;
             }
 
             msg += std::get<1>(ret);
             log<level::ERR>("SECURE UPDATE FAILED IN A STATE ",
-                                entry("FAILURE=%s", msg.c_str()));
+                            entry("FAILURE=%s", msg.c_str()));
         }
         catch (const std::exception& e)
         {
@@ -218,15 +234,17 @@ void Activation::flashWrite()
         try
         {
             fs::path manifestPath = uploadDir / versionId / MANIFEST_FILE_NAME;
-            if(stopDowngrade(manifestPath))
+            if (stopDowngrade(manifestPath))
             {
                 throw std::runtime_error("Error in stop Downgrade");
             }
             for (auto& bmcImage : phosphor::software::image::bmcImages)
             {
-                if(fs::exists(uploadDir / versionId / bmcImage)) {
-                    fs::copy_file(uploadDir / versionId / bmcImage, toPath / bmcImage,
-                                fs::copy_options::overwrite_existing);
+                if (fs::exists(uploadDir / versionId / bmcImage))
+                {
+                    fs::copy_file(uploadDir / versionId / bmcImage,
+                                  toPath / bmcImage,
+                                  fs::copy_options::overwrite_existing);
                 }
             }
             unsecureFlashSuceeded = true;
@@ -252,8 +270,8 @@ void Activation::onStateChanges(sdbusplus::message::message& msg)
         // Read the msg and populate each variable
         msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
 
-        auto copyImageServiceFile =
-            "obmc-secure-copy-image@" + versionId + ".service";
+        auto copyImageServiceFile = "obmc-secure-copy-image@" + versionId +
+                                    ".service";
 
         if (newStateUnit != copyImageServiceFile)
         {
@@ -321,7 +339,6 @@ void Activation::failActivation(bool failed)
         {
             secureFlashSuceeded = false;
 
-
             softwareServer::Activation::activation(
                 softwareServer::Activation::Activations::Failed);
 
@@ -334,7 +351,6 @@ void Activation::failActivation(bool failed)
 
             softwareServer::Activation::activation(
                 softwareServer::Activation::Activations::Active);
-
 
             storePurpose(versionId,
                          parent.versions.find(versionId)->second->purpose());
@@ -350,7 +366,6 @@ void Activation::failActivation(bool failed)
 
             // Create active association
             parent.createActiveAssociation(path);
-
         }
     }
     catch (const std::exception& e)

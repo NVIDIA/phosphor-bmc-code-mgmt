@@ -33,7 +33,8 @@ class ApFwActivationProgress : public ActivationProgressIntf
      * @param[in] bus - Bus to attach to
      * @param[in] objPath - D-Bus object path
      */
-    ApFwActivationProgress(sdbusplus::bus::bus& bus, const std::string& objPath) :
+    ApFwActivationProgress(sdbusplus::bus::bus& bus,
+                           const std::string& objPath) :
         ActivationProgressIntf(bus, objPath.c_str(),
                                action::emit_interface_added)
     {
@@ -63,9 +64,11 @@ class ApFwActivation : public ActivationIntf
      *  @param[in] updateManager - Reference to FW update manager
      */
     ApFwActivation(sdbusplus::bus::bus& bus, std::string objPath,
-               Activations activationState, RequestedActivations requestedActivationState,
-               UpdateManager* updateManager) :
-        ActivationIntf(bus, objPath.c_str(), ActivationIntf::action::defer_emit),
+                   Activations activationState,
+                   RequestedActivations requestedActivationState,
+                   UpdateManager* updateManager) :
+        ActivationIntf(bus, objPath.c_str(),
+                       ActivationIntf::action::defer_emit),
         bus(bus), objPath(objPath), updateManager(updateManager)
     {
         activation(activationState);
@@ -99,6 +102,6 @@ class ApFwActivation : public ActivationIntf
     UpdateManager* updateManager;
 };
 
-} // firmwareupdater
-} // software
-} // phosphor
+} // namespace firmwareupdater
+} // namespace software
+} // namespace phosphor

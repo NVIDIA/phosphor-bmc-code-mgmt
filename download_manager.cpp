@@ -9,14 +9,13 @@
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/lg2.hpp>
-
 #include <sdbusplus/bus.hpp>
 #include <sdbusplus/bus/match.hpp>
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
-#include <fstream>
 
 namespace phosphor
 {
@@ -146,7 +145,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (isScpTransferServiceRunning())
     {
         error("SCP tranfer is already in progress");
-        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(("SCP tranfer is already in progress")));
+        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(
+            ("SCP tranfer is already in progress")));
         return;
     }
 
@@ -194,7 +194,7 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
         updateStatusProperties(fileName, target, Status::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(target.c_str()));
-	    return;
+        return;
     }
 
     if (username.empty())
@@ -216,10 +216,10 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
         return;
     }
 
-    std::string cmdContent = "serverAddress=" + serverAddress + "\n"
-                            + "username=" + username + "\n"
-                            + "sourceFilePath=" + sourceFilePath + "\n"
-                            + "target=" + target + "\n";
+    std::string cmdContent = "serverAddress=" + serverAddress + "\n" +
+                             "username=" + username + "\n" +
+                             "sourceFilePath=" + sourceFilePath + "\n" +
+                             "target=" + target + "\n";
 
     // Write cmdContent the args file
     argfile << cmdContent;
@@ -247,8 +247,10 @@ void Download::addRemoteServerPublicKey(const std::string serverAddress,
     // Create the entire directory path if it doesn't exist
     fs::create_directories(fs::path(knownHostsFilePath).parent_path());
 
-    // Open known_hosts file in append mode, creating a new file if it doesn't exist
-    std::fstream knownHostsFile(knownHostsFilePath, std::ios::in | std::ios::out | std::ios::app);
+    // Open known_hosts file in append mode, creating a new file if it doesn't
+    // exist
+    std::fstream knownHostsFile(knownHostsFilePath,
+                                std::ios::in | std::ios::out | std::ios::app);
 
     if (!knownHostsFile.is_open())
     {
@@ -288,8 +290,9 @@ void Download::revokeAllRemoteServerPublicKeys(const std::string serverAddress)
 
     std::vector<std::string> lines;
     std::string line;
-    
-    // Read lines from the known_hosts file and exclude lines containing serverAddress
+
+    // Read lines from the known_hosts file and exclude lines containing
+    // serverAddress
     while (std::getline(file, line))
     {
         if (line.find(serverAddress) == std::string::npos)
@@ -300,8 +303,10 @@ void Download::revokeAllRemoteServerPublicKeys(const std::string serverAddress)
 
     file.close();
 
-    // Reopen the file for writing, remove the existing content and write the updated content
-    std::ofstream outfile(knownHostsFilePath, std::ofstream::out | std::ofstream::trunc);
+    // Reopen the file for writing, remove the existing content and write the
+    // updated content
+    std::ofstream outfile(knownHostsFilePath,
+                          std::ofstream::out | std::ofstream::trunc);
     if (!outfile.is_open())
     {
         error("Failed to reopen the known_hosts file for writing");

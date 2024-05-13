@@ -5,17 +5,18 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 
-#include <chrono>
-#include <filesystem>
-#include <fstream>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
-#include <sdbusplus/exception.hpp>
-#include <boost/asio/steady_timer.hpp>
-#include <boost/asio/io_context.hpp>
 #include <sdbusplus/asio/connection.hpp>
+#include <sdbusplus/exception.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
 
 namespace phosphor
 {
@@ -34,15 +35,13 @@ PrisStateMachine::PrisStateMachine(MachineContext& ctx) :
     StateMachine(static_cast<uint8_t>(States::MAX_STATES), ctx,
                  static_cast<uint8_t>(States::STATE_IDLE))
 {
-
     deviceLayer = std::make_unique<I2CCommLib>(
         PrisStateMachine::busIdentifier, PrisStateMachine::deviceAddrress);
 
     stateFlowSequence = {
         &FuncIdle,      &FuncCheckCECStatus,   &FuncStartFwUpdate,
         &FuncCopyImage, &FuncSendCopyComplete, &FuncCheckUpdateStatus,
-        &FuncTerminate
-    };
+        &FuncTerminate};
 }
 
 const std::vector<StateFunc*>& PrisStateMachine::GetStateFlow()
@@ -86,7 +85,8 @@ void PrisStateMachine::TriggerState(uint8_t newState)
     }
 }
 
-void PrisStateMachine::HandleCecInterrupt([[maybe_unused]]sdbusplus::message::message& msg)
+void PrisStateMachine::HandleCecInterrupt(
+    [[maybe_unused]] sdbusplus::message::message& msg)
 {
     bool flashSuceeded = false;
 
@@ -189,16 +189,15 @@ void PrisStateMachine::TimerCallBack(const boost::system::error_code& ec)
     }
 }
 
-void PrisStateMachine::StateIdle([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateIdle([[maybe_unused]] MachineContext& ctx)
 {
     log<level::DEBUG>("StateIdle Function ");
 }
 
-void PrisStateMachine::StateCheckCECStatus([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateCheckCECStatus([[maybe_unused]] MachineContext& ctx)
 {
     bool stateSuccessful{true};
     uint8_t retVal = static_cast<uint8_t>(I2CCommLib::CommandStatus::UNKNOWN);
-
 
     std::string msg = "StateCheckCECStatus: ";
 
@@ -255,11 +254,9 @@ void PrisStateMachine::StateCheckCECStatus([[maybe_unused]]MachineContext& ctx)
 
 void PrisStateMachine::StateStartFwUpdate(MachineContext& ctx)
 {
-
     bool stateSuccessful{true};
     uint8_t retVal = static_cast<uint8_t>(I2CCommLib::CommandStatus::UNKNOWN);
     std::string msg = "StateStartFwUpdate ";
-
 
     try
     {
@@ -312,7 +309,7 @@ void PrisStateMachine::StateStartFwUpdate(MachineContext& ctx)
     }
 }
 
-void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateCopyImage([[maybe_unused]] MachineContext& ctx)
 {
     bool stateSuccessful{true};
     std::string msg{"StateCopyImage "};
@@ -322,10 +319,12 @@ void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
         if (!myMachineContext.activationObject->secureUpdateTimer)
         {
             sdbusplus::asio::connection& connectionBus =
-            static_cast<sdbusplus::asio::connection&>(myMachineContext.activationObject->bus);
+                static_cast<sdbusplus::asio::connection&>(
+                    myMachineContext.activationObject->bus);
 
             myMachineContext.activationObject->secureUpdateTimer =
-                std::make_unique<boost::asio::steady_timer>(connectionBus.get_io_context());
+                std::make_unique<boost::asio::steady_timer>(
+                    connectionBus.get_io_context());
         }
 
         auto copyImageServiceFile =
@@ -356,7 +355,8 @@ void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
 
         myMachineContext.activationObject->secureUpdateTimer->expires_after(
             std::chrono::seconds(timerExpirySecs));
-        myMachineContext.activationObject->secureUpdateTimer->async_wait(TimerCallBack);
+        myMachineContext.activationObject->secureUpdateTimer->async_wait(
+            TimerCallBack);
     }
     catch (const std::exception& e)
     {
@@ -366,7 +366,8 @@ void PrisStateMachine::StateCopyImage([[maybe_unused]]MachineContext& ctx)
     }
 }
 
-void PrisStateMachine::StateSendCopyComplete([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateSendCopyComplete(
+    [[maybe_unused]] MachineContext& ctx)
 {
     bool stateSuccessful{true};
     std::string msg{"StateSendCopyComplete "};
@@ -425,7 +426,8 @@ void PrisStateMachine::StateSendCopyComplete([[maybe_unused]]MachineContext& ctx
         }
         myMachineContext.activationObject->secureUpdateTimer->expires_after(
             std::chrono::seconds(timerExpirySecs));
-        myMachineContext.activationObject->secureUpdateTimer->async_wait(TimerCallBack);
+        myMachineContext.activationObject->secureUpdateTimer->async_wait(
+            TimerCallBack);
     }
     catch (const std::exception& e)
     {
@@ -437,7 +439,8 @@ void PrisStateMachine::StateSendCopyComplete([[maybe_unused]]MachineContext& ctx
     }
 }
 
-void PrisStateMachine::StateCheckUpdateStatus([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateCheckUpdateStatus(
+    [[maybe_unused]] MachineContext& ctx)
 {
     bool stateSuccessful{true};
     std::string msg{" "};
@@ -479,7 +482,7 @@ void PrisStateMachine::StateCheckUpdateStatus([[maybe_unused]]MachineContext& ct
                                               BMC_FW_UPDATE_REQUEST_RESET_NOW))
             {
                 log<level::DEBUG>("StateCheckUpdateStatus - Firmware update "
-                                 "succeeded,immediate reset expected.");
+                                  "succeeded,immediate reset expected.");
                 doReset = true;
             }
             else
@@ -517,13 +520,11 @@ void PrisStateMachine::StateCheckUpdateStatus([[maybe_unused]]MachineContext& ct
     }
 }
 
-void PrisStateMachine::StateTerminate([[maybe_unused]]MachineContext& ctx)
+void PrisStateMachine::StateTerminate([[maybe_unused]] MachineContext& ctx)
 {
-
     bool stateSuccessful{true};
     std::string msg{" "};
     std::string errMsg{" "};
-
 
     std::tuple<bool, std::string> ret = myMachineContext.GetMachineRunStatus();
     bool smRunSuceeded = std::get<0>(ret);

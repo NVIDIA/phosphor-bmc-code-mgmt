@@ -26,8 +26,7 @@ class I2CDevice : public I2CInterface
      */
     explicit I2CDevice(uint8_t busId, uint8_t devAddr, bool useCustom = false,
                        InitialState initialState = InitialState::OPEN) :
-        busId(busId),
-        devAddr(devAddr), customRW(useCustom),
+        busId(busId), devAddr(devAddr), customRW(useCustom),
         busStr("/dev/i2c-" + std::to_string(busId))
     {
         if (initialState == InitialState::OPEN)
@@ -79,8 +78,7 @@ class I2CDevice : public I2CInterface
             close();
         }
         catch (...)
-        {
-        }
+        {}
     }
 
   public:

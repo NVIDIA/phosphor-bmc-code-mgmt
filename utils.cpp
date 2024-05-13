@@ -1,9 +1,10 @@
 #include "utils.hpp"
 
 #include <unistd.h>
-#include <fstream>
 
 #include <phosphor-logging/lg2.hpp>
+
+#include <fstream>
 
 namespace utils
 {

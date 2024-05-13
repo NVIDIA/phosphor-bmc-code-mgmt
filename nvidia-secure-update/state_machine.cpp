@@ -8,14 +8,13 @@ namespace updater
 {
 StateMachine::StateMachine(uint8_t maxStates, MachineContext& ctx,
                            uint8_t initialState) :
-    maxNumStates(maxStates),
-    currentState(initialState), newState(initialState), transitionFired(false),
-    myMachineContext(ctx)
+    maxNumStates(maxStates), currentState(initialState), newState(initialState),
+    transitionFired(false), myMachineContext(ctx)
 {
     if (maxNumStates > static_cast<uint8_t>(StateCapacity::MAX_STATE_CAPACITY))
     {
-        std::string msg =
-            "StateMachine: Error, max state count " + maxNumStates;
+        std::string msg = "StateMachine: Error, max state count " +
+                          maxNumStates;
         msg += "exceeds max value";
         throw std::runtime_error(msg.c_str());
     }
@@ -42,7 +41,6 @@ void StateMachine::StartMachine(uint8_t newState)
 
 void StateMachine::DoTransition(uint8_t nState)
 {
-
     transitionFired = true;
     newState = nState;
 }
@@ -66,7 +64,7 @@ void StateMachine::RunMachine()
         }
 
         const StateFunc* state = pStateFlow[newState];
-        //const auto state = pStateFlow[newState];
+        // const auto state = pStateFlow[newState];
 
         transitionFired = false;
 

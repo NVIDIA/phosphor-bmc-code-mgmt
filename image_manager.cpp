@@ -6,13 +6,9 @@
 #include "version.hpp"
 #include "watch.hpp"
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <iostream>
-#include <variant>
-#include <fstream>
-#include <map>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -20,17 +16,21 @@
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/lg2.hpp>
-#include <xyz/openbmc_project/Software/Image/error.hpp>
-#include <xyz/openbmc_project/Software/Activation/server.hpp>
 #include <sdbusplus/server.hpp>
+#include <xyz/openbmc_project/Software/Activation/server.hpp>
+#include <xyz/openbmc_project/Software/Image/error.hpp>
 
 #include <algorithm>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <random>
 #include <string>
 #include <system_error>
+#include <variant>
 
 namespace phosphor
 {
@@ -130,10 +130,9 @@ bool copyAndRemoveCECImage(const std::string& tarFilePath)
 void resetTargetObjectPaths(sdbusplus::bus_t& bus)
 {
     std::vector<sdbusplus::message::object_path> objectPaths = {};
-    utils::setProperty(
-        bus, "/xyz/openbmc_project/software",
-        "xyz.openbmc_project.Software.UpdatePolicy", "Targets",
-        objectPaths);
+    utils::setProperty(bus, "/xyz/openbmc_project/software",
+                       "xyz.openbmc_project.Software.UpdatePolicy", "Targets",
+                       objectPaths);
 }
 #endif
 } // namespace
@@ -150,9 +149,10 @@ int Manager::processImage(const std::string& tarFilePath)
     }
 
 #ifdef NVIDIA_SECURE_BOOT
-    auto objectPaths = utils::getProperty<std::vector<sdbusplus::message::object_path>>(
-        bus, "/xyz/openbmc_project/software",
-        "xyz.openbmc_project.Software.UpdatePolicy", "Targets");
+    auto objectPaths =
+        utils::getProperty<std::vector<sdbusplus::message::object_path>>(
+            bus, "/xyz/openbmc_project/software",
+            "xyz.openbmc_project.Software.UpdatePolicy", "Targets");
     std::string target = "";
 
     if (!objectPaths.empty())
@@ -163,7 +163,8 @@ int Manager::processImage(const std::string& tarFilePath)
         }
         else
         {
-            error("Does not support {SIZE} targets", "SIZE", objectPaths.size());
+            error("Does not support {SIZE} targets", "SIZE",
+                  objectPaths.size());
             resetTargetObjectPaths(bus);
             return -1;
         }

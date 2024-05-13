@@ -3,11 +3,12 @@
 #include "i2c.hpp"
 #include "i2c_interface.hpp"
 
-#include <functional>
-#include <typeinfo>
-#include <experimental/filesystem>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+
+#include <experimental/filesystem>
+#include <functional>
+#include <typeinfo>
 
 namespace phosphor
 {
@@ -36,21 +37,18 @@ static const std::string cecAttestRandomFile{"random_num.bin"};
 
 namespace fsys = std::experimental::filesystem;
 
-
 // RAII support for openSSL functions.
 using BIO_MEM_Ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 using EVP_PKEY_Ptr = std::unique_ptr<EVP_PKEY, decltype(&::EVP_PKEY_free)>;
 
 using EVP_MD_CTX_Ptr =
-      std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)>;
+    std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)>;
 
 struct RemovablePath
 {
     fsys::path path;
 
-    RemovablePath(const fsys::path& path) : path(path)
-    {
-    }
+    RemovablePath(const fsys::path& path) : path(path) {}
     ~RemovablePath()
     {
         if (!path.empty())
@@ -63,7 +61,6 @@ struct RemovablePath
 
 class I2CCommLib
 {
-
   public:
     I2CCommLib(uint8_t busIdentifier, uint8_t deviceAddrress)
     {
@@ -75,7 +72,8 @@ class I2CCommLib
 
     virtual uint8_t GetCECState();
 
-    virtual void SendStartFWUpdate(uint32_t imgFileSize, uint8_t fwType=BMC_FW_ID);
+    virtual void SendStartFWUpdate(uint32_t imgFileSize,
+                                   uint8_t fwType = BMC_FW_ID);
 
     virtual uint8_t GetLastCmdStatus();
 
@@ -86,7 +84,7 @@ class I2CCommLib
     virtual uint8_t QueryAboutInterrupt();
 
     virtual uint8_t GetFWUpdateStatus();
-  
+
     /** @struct ReadCecVersion
      *  @brief CEC version details.
      */
@@ -101,7 +99,8 @@ class I2CCommLib
 
     virtual void SendBMCReset();
 
-    virtual void GetAttestation(uint16_t dataSize=ATTESTATION_PAYLOAD_SIZE, uint16_t blkSize=BLOCK_SIZE_128_BYTE);
+    virtual void GetAttestation(uint16_t dataSize = ATTESTATION_PAYLOAD_SIZE,
+                                uint16_t blkSize = BLOCK_SIZE_128_BYTE);
 
   private:
     void VerifyCheckSum(const std::vector<uint8_t>& data);
@@ -111,17 +110,18 @@ class I2CCommLib
     int CreateRandomList(std::vector<uint8_t>& randomData);
 
     bool VerifySignature(const fsys::path& dataFile, const fsys::path& sigFile,
-                    const fsys::path& publicKey);
+                         const fsys::path& publicKey);
 
-    void CreateDERSignature(const std::vector<uint8_t>& data, uint16_t dataSize, std::string filename);
+    void CreateDERSignature(const std::vector<uint8_t>& data, uint16_t dataSize,
+                            std::string filename);
 
-    int  HexStringToRandomList(const std::string& str, std::vector<uint8_t>& randomData);
+    int HexStringToRandomList(const std::string& str,
+                              std::vector<uint8_t>& randomData);
 
-    void WriteStatusFile(std::string &status);
+    void WriteStatusFile(std::string& status);
 
   public:
     virtual ~I2CCommLib() = default;
-
 
   public:
     enum class CommandStatus
@@ -158,7 +158,7 @@ class I2CCommLib
         BMC_FW_UPDATE_REQUEST_RESET_LATER,
         UNKNOWN
     };
-  
+
     std::string GetCommandStatusStr(uint8_t status);
     static constexpr uint8_t CEC_FW_ID{0x01};
     static constexpr uint8_t BMC_FW_ID{0x04};
@@ -167,7 +167,6 @@ class I2CCommLib
     static constexpr uint32_t OTA_HEADER_OFFSET_1MB_FILE_SIZE{0xFF000};
     static constexpr uint32_t OTA_HEADER_OFFSET_2MB_FILE_SIZE{0x1FF000};
     static constexpr uint32_t MB_SIZE{0x100000};
-
 
     static constexpr uint8_t OTA_OFFSET_SIZE1{0xE8};
     static constexpr uint8_t OTA_OFFSET_SIZE2{0xE9};
@@ -180,6 +179,7 @@ class I2CCommLib
     static constexpr uint16_t BLOCK_SIZE_32_BYTE{32};
 
     static constexpr uint16_t ATTESTATION_PAYLOAD_SIZE{657};
+
   private:
     std::string deviceName;
 
@@ -211,7 +211,6 @@ class I2CCommLib
     static constexpr uint8_t COPY_IMG_CMD_LEN{0x01};
     static constexpr uint8_t BOOT_COMPLETE_CMD_LEN{0x03};
 
-
     static constexpr uint8_t BLOCK_SIZE_128_VALUE{0x0};
     static constexpr uint8_t BLOCK_SIZE_64_VALUE{0x1};
     static constexpr uint8_t BLOCK_SIZE_48_VALUE{0x2};
@@ -221,20 +220,19 @@ class I2CCommLib
     static constexpr uint8_t SIGNATURE_SIZE{96};
     static constexpr int SUCCESS{0};
     static constexpr int FAILURE{-1};
-    std::vector<std::string>  commandStatusStr{"SUCCESS",
-                                               "ERR_I2C_CHECKSUM",
-                                               "ERR_CMD_LENGTH_MISMATCH",
-                                               "ERR_CMD_VERSION_SUPPORTED",
-                                               "ERR_BUSY",
-                                               "ERR_FLASH_ERROR",
-                                               "ERR_CMD_INVALID",
-                                               "ERR_CMD_INTERNAL",
-                                               "ERR_PRIMARY_REGION_DEGRADED",
-                                               "ERR_SECONDARY_REGION_DEGRADED",
-                                               "ERR_RECOVERY_REGION_DEGRADED",
-                                               "ERR_PRIMARY_SECONDARY_MISMATCH",
-                                               "UNKNOWN"};
-
+    std::vector<std::string> commandStatusStr{"SUCCESS",
+                                              "ERR_I2C_CHECKSUM",
+                                              "ERR_CMD_LENGTH_MISMATCH",
+                                              "ERR_CMD_VERSION_SUPPORTED",
+                                              "ERR_BUSY",
+                                              "ERR_FLASH_ERROR",
+                                              "ERR_CMD_INVALID",
+                                              "ERR_CMD_INTERNAL",
+                                              "ERR_PRIMARY_REGION_DEGRADED",
+                                              "ERR_SECONDARY_REGION_DEGRADED",
+                                              "ERR_RECOVERY_REGION_DEGRADED",
+                                              "ERR_PRIMARY_SECONDARY_MISMATCH",
+                                              "UNKNOWN"};
 };
 
 } // namespace updater

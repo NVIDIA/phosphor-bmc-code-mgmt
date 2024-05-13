@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include "item_updater_helper.hpp"
+
 #include "utils.hpp"
 
 namespace phosphor
@@ -9,21 +10,22 @@ namespace software
 {
 namespace updater
 {
-//vendorfieldmode=disabled
+// vendorfieldmode=disabled
 #define ENV_DISABLE_VENDOR_FIELD_MODE "vendorfieldmode\\x3ddisabled"
-#define SERVICE_DISABLE_VENDOR_FIELD_MODE                                                  \
+#define SERVICE_DISABLE_VENDOR_FIELD_MODE                                      \
     "obmc-flash-bmc-setenv@" ENV_DISABLE_VENDOR_FIELD_MODE ".service"
 // openbmconce=clean-rwfs-filesystem factory-reset
 #define ENV_FACTORY_RESET "openbmconce\\x3dfactory\\x2dreset"
 #define SERVICE_FACTORY_RESET                                                  \
     "obmc-flash-bmc-setenv@" ENV_FACTORY_RESET ".service"
 
-void Helper::setEntry([[maybe_unused]]const std::string& entryId, [[maybe_unused]]uint8_t value)
+void Helper::setEntry([[maybe_unused]] const std::string& entryId,
+                      [[maybe_unused]] uint8_t value)
 {
     // Empty
 }
 
-void Helper::clearEntry([[maybe_unused]]const std::string& entryId)
+void Helper::clearEntry([[maybe_unused]] const std::string& entryId)
 {
     // Empty
 }
@@ -39,12 +41,12 @@ void Helper::factoryReset()
     utils::execute("/bin/touch", "/run/factory-reset");
 }
 
-void Helper::removeVersion([[maybe_unused]]const std::string& versionId)
+void Helper::removeVersion([[maybe_unused]] const std::string& versionId)
 {
     // Empty
 }
 
-void Helper::updateUbootVersionId([[maybe_unused]]const std::string& versionId)
+void Helper::updateUbootVersionId([[maybe_unused]] const std::string& versionId)
 {
     // Empty
 }

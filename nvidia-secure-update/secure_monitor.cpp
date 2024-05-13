@@ -6,12 +6,8 @@
 #include "xyz/openbmc_project/Software/Version/server.hpp"
 
 #include <CLI/CLI.hpp>
-#include <chrono>
 #include <com/nvidia/Secureboot/Cec/server.hpp>
-#include <filesystem>
-#include <fstream>
 #include <gpiod.hpp>
-#include <map>
 #include <nlohmann/json.hpp>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
@@ -27,9 +23,14 @@
 #include <sdeventplus/source/io.hpp>
 #include <sdeventplus/source/signal.hpp>
 #include <stdplus/signal.hpp>
-#include <variant>
 #include <xyz/openbmc_project/Common/error.hpp>
 #include <xyz/openbmc_project/Software/Activation/server.hpp>
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <variant>
 
 using namespace phosphor::logging;
 
@@ -102,7 +103,7 @@ class CecImpl : public CecInherit
 {
   public:
     CecImpl(sdbusplus::bus::bus& bus, const std::string& objPath) :
-        CecInherit(bus, (objPath).c_str()){};
+        CecInherit(bus, (objPath).c_str()) {};
 
     bool getStatus()
     {
@@ -119,7 +120,6 @@ std::unique_ptr<CecImpl> cecIntManager;
 
 void RebootBmc()
 {
-
     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
                                       SYSTEMD_INTERFACE, "StartUnit");
     method.append("nvidia-reboot.service", "replace");
@@ -136,8 +136,10 @@ void RebootBmc()
     }
 }
 
-static int GpioInterruptHandler([[maybe_unused]]sd_event_source* s, [[maybe_unused]]int fd, 
-		                [[maybe_unused]] uint32_t revents,[[maybe_unused]] void* userdata)
+static int GpioInterruptHandler([[maybe_unused]] sd_event_source* s,
+                                [[maybe_unused]] int fd,
+                                [[maybe_unused]] uint32_t revents,
+                                [[maybe_unused]] void* userdata)
 {
     try
     {
@@ -214,8 +216,9 @@ static bool RequestGPIOEvents(const std::string& name, gpiod::line& gpioLine,
 
     try
     {
-        gpioLine.request(
-            {"secure_monitor_service", gpiod::line_request::EVENT_BOTH_EDGES, {}});
+        gpioLine.request({"secure_monitor_service",
+                          gpiod::line_request::EVENT_BOTH_EDGES,
+                          {}});
     }
     catch (std::exception&)
     {
@@ -283,8 +286,8 @@ std::string getBMCVersion(const std::string& releaseFilePath)
             //    is 0 for the unquoted case, so substr() is called with a len
             //    parameter of npos (-1) which according to the documentation
             //    indicates to use all characters until the end of the string.
-            version =
-                versionValue.substr(pos, versionValue.find_last_of('"') - pos);
+            version = versionValue.substr(pos,
+                                          versionValue.find_last_of('"') - pos);
             break;
         }
     }
@@ -377,8 +380,8 @@ void ApplyRebootGaurd()
 {
     try
     {
-        auto objValueTree =
-            getManagedObjects(BUSNAME_UPDATER, SOFTWARE_OBJPATH);
+        auto objValueTree = getManagedObjects(BUSNAME_UPDATER,
+                                              SOFTWARE_OBJPATH);
 
         // Read os-release from /etc/ to get the functional BMC version
         auto functionalVersion = getBMCVersion(OS_RELEASE_FILE);
@@ -494,7 +497,8 @@ static void StartWatchingUpdate(sdbusplus::message::message& msg)
     namespace mesg = sdbusplus::message;
 
     mesg::object_path objPath;
-    std::map<std::string, std::map<std::string, std::variant<std::string>>> interfaces;
+    std::map<std::string, std::map<std::string, std::variant<std::string>>>
+        interfaces;
     try
     {
         msg.read(objPath, interfaces);
@@ -544,7 +548,7 @@ static void StartWatchingUpdate(sdbusplus::message::message& msg)
 } // namespace NvidiaSecureUpdate
 } // namespace phosphor
 
-int main([[maybe_unused]]int argc, [[maybe_unused]]char** argv)
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
     CLI::App app{"Nvidia Secure Monitor Service"};
 

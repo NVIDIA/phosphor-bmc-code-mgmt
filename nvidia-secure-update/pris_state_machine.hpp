@@ -6,9 +6,10 @@
 
 #include <stdio.h>
 
+#include <sdbusplus/bus/match.hpp>
+
 #include <array>
 #include <functional>
-#include <sdbusplus/bus/match.hpp>
 #include <typeinfo>
 
 namespace phosphor
@@ -22,14 +23,13 @@ static const std::string keyBmcImgSize{"bmc_img_size"};
 static const std::string keyBmcImgName{"bmc_img_name"};
 
 static const std::string fwSecureBmcImageName{
-    phosphor::software::image::SECURE_IMAGE_NAME}; 
+    phosphor::software::image::SECURE_IMAGE_NAME};
 
 class PrisMachineContext : public MachineContext
 {
-
   public:
     PrisMachineContext(Activation* activationObj) :
-        MachineContext(activationObj){
+        MachineContext(activationObj) {
 
         };
 };

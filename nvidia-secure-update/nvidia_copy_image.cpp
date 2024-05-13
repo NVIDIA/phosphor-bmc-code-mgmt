@@ -3,12 +3,13 @@
 #include "i2c_comm_lib.hpp"
 
 #include <CLI/CLI.hpp>
-#include <filesystem>
-#include <fstream>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <phosphor-logging/log.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
+
+#include <filesystem>
+#include <fstream>
 
 using namespace phosphor::logging;
 
@@ -22,7 +23,6 @@ namespace phosphor
 {
 namespace NvidiaCopyImage
 {
-
 
 static constexpr auto busIdentifier = CEC_BUS_IDENTIFIER;
 
@@ -44,7 +44,6 @@ int main(int argc, char** argv)
     app.add_option("-f", fileName, "Filename of f/w image")->required();
     app.add_option("-s", fileSize, "Actual size of the f/w image")->required();
 
-
     // Parse input parameter
     try
     {
@@ -56,17 +55,14 @@ int main(int argc, char** argv)
                         entry("EXCEPTION=%s", e.what()));
     }
 
-
     try
     {
         deviceLayer.SendImageToCEC(fileName, fileSize);
-
     }
     catch (const std::exception& e)
     {
-        log<level::ERR>(
-            "copy_image_service - transfer image failed.",
-            entry("EXCEPTION=%s", e.what()));
+        log<level::ERR>("copy_image_service - transfer image failed.",
+                        entry("EXCEPTION=%s", e.what()));
 
         return -1;
     }

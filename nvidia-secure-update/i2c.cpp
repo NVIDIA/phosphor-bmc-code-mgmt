@@ -7,7 +7,8 @@
 
 #include <cerrno>
 
-extern "C" {
+extern "C"
+{
 #include <i2c/smbus.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
