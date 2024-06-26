@@ -25,6 +25,26 @@ update_dbus_properties() {
     busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Progress y "$progress"
 }
 
+get_progress() {
+    local logFile="$1"
+    local progress=0
+
+    # Extract the latest line with at least three #, spaces and a percentage
+    latest_progress_line=$(grep -Eo '#{3,} *[0-9]+(\.[0-9]+)?%' "$logFile" | tail -1)
+
+    # Extract the percentage from the line
+    if [[ "$latest_progress_line" =~ ([0-9]+(\.[0-9]+)?)% ]]; then
+        percentage=${BASH_REMATCH[1]}
+        integer_percentage=${percentage%.*}  # Truncate decimal part
+        echo "Latest progress $integer_percentage"
+        progress=$integer_percentage
+    else
+        echo "No matching progress found. Set it to 0"
+        progress=0
+    fi
+    return $progress
+}
+
 logFile="/tmp/http.log"
 argsFile="/tmp/http.args"
 
@@ -72,13 +92,15 @@ exec 3<&0  # Save stdin to file descriptor 3
 exec 4>&1  # Save stdout to file descriptor 4
 
 # Run curl in the background and redirect its output to the log file
+totalTimeout=2700  # seconds
+
 if [[ $protocol == "HTTP" ]]; then
-    curlOptions="-vlf --max-time 900"
+    curlOptions="-vlf --progress-bar --max-time $totalTimeout"
     curlCommand="curl $curlOptions -o $destDir http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
 if [[ $protocol == "HTTPS" ]]; then
-    curlOptions="-vlf --max-time 900 --capath /etc/ssl/certs/authority"
+    curlOptions="-vlf --progress-bar --max-time $totalTimeout --capath /etc/ssl/certs/authority"
     curlCommand="curl $curlOptions -o $destDir https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
@@ -150,7 +172,7 @@ exec 1>&4  # Restore stdout from file descriptor 4
 # Check if downloadStarted is true
 if [ "$downloadStarted" = true ]; then
     # Wait for the curl process to complete and get its exit status
-    timeout=900  # seconds
+    timeout=$totalTimeout  # seconds
     intervals=30 # check the log file every 60 seconds
     startTime=$(date +%s)
     endTime=$((startTime + timeout))
@@ -169,17 +191,25 @@ if [ "$downloadStarted" = true ]; then
             break
         fi
 
-        if grep -q "left intact" "$logFile"; then
-            downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
-            update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 100
+        # Received connection final status. Check final progress.
+        if grep -q "Closing connection" "$logFile" || grep -q "left intact" "$logFile"; then
+            get_progress "$logFile"
+            progress=$?
+            if [[ "$progress" -eq 100 ]]; then
+                echo "Connection final status and 100%"
+                downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
+            else
+                echo "Connection final status without 100%"
+                downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
+            fi
+            update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" $progress
             break
         fi
 
-        progress=$(tail -n 1 $logFile | awk '{print $((NF-11))}')
-        if [[ ! $progress =~ ^[0-9]+$ ]]; then
-            echo "Progress is not a number. Set it to 0"
-            progress=0
-        fi
+        # Check current progress
+        get_progress "$logFile"
+        progress=$?
+
         echo "DownloadStatus=$downloadStatus Progress=$progress"
 
         update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" "$progress"
@@ -196,7 +226,7 @@ if [ "$downloadStarted" = true ]; then
         sleep "$intervals"
     done
 
-    if [ $downloadStatus == "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"  ]; then
+    if [ $downloadStatus == "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed" ]; then
         echo "Download completed"
     else
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
