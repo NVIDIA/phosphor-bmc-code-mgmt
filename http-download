@@ -87,6 +87,18 @@ if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
    exit 0
 fi
 
+if [ -d "$destDir" ]; then
+    outputOption="-o $destDir/$filename"
+else
+    if [ -f "$destDir" ]; then
+        outputOption="-o $destDir"
+    else
+        echo "Invalid destDir: $destDir. Please provide a valid path."
+        update_dbus_properties "$sourceFile" "$destDir" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid" 0
+        exit 0
+    fi
+fi
+
 # Save original file descriptors
 exec 3<&0  # Save stdin to file descriptor 3
 exec 4>&1  # Save stdout to file descriptor 4
@@ -96,12 +108,12 @@ totalTimeout=2700  # seconds
 
 if [[ $protocol == "HTTP" ]]; then
     curlOptions="-vlf --progress-bar --max-time $totalTimeout"
-    curlCommand="curl $curlOptions -o $destDir http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+    curlCommand="curl $curlOptions $outputOption http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
 if [[ $protocol == "HTTPS" ]]; then
     curlOptions="-vlf --progress-bar --max-time $totalTimeout --capath /etc/ssl/certs/authority"
-    curlCommand="curl $curlOptions -o $destDir https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+    curlCommand="curl $curlOptions $outputOption https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
 echo $curlCommand
