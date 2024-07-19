@@ -97,7 +97,7 @@ using Activation =
 
 using namespace std::chrono;
 
-void ApplyRebootGaurd();
+void ApplyRebootGuard();
 
 class CecImpl : public CecInherit
 {
@@ -258,7 +258,7 @@ static void HandleTerminate(sdeventplus::source::Signal& source,
 
 std::string getBMCVersion(const std::string& releaseFilePath)
 {
-    std::string versionKey = "VERSION_ID=";
+    std::string versionKey = "VERSION=";
     std::string versionValue{};
     std::string version{};
     std::ifstream efile;
@@ -344,6 +344,12 @@ void EnableRebootGuard()
 
 void DisableRebootGuard()
 {
+    if (!enabledGuard)
+    {
+        log<level::INFO>("Already disabled reboot guard");
+        return;
+    }
+
     log<level::INFO>("BMC activation has ended - BMC reboots are re-enabled.");
 
     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
@@ -358,11 +364,11 @@ static void TimerCallBack()
 {
     try
     {
-        ApplyRebootGaurd();
+        ApplyRebootGuard();
     }
     catch (const std::exception& e)
     {
-        log<level::ERR>("TimerCallBack - ApplyRebootGaurd Exception.",
+        log<level::ERR>("TimerCallBack - ApplyRebootGuard Exception.",
                         entry("EXCEPTION=%s", e.what()));
     }
 }
@@ -376,7 +382,7 @@ static void TimerCallBack()
  *
  */
 
-void ApplyRebootGaurd()
+void ApplyRebootGuard()
 {
     try
     {
@@ -447,7 +453,7 @@ void ApplyRebootGaurd()
                     catch (const std::exception& e)
                     {
                         log<level::ERR>(
-                            "secure_monitor_service - ApplyRebootGaurd failed.",
+                            "secure_monitor_service - ApplyRebootGuard failed.",
                             entry("EXCEPTION=%s", e.what()));
                     }
                 }
@@ -468,7 +474,7 @@ void ApplyRebootGaurd()
             catch (const std::exception& e)
             {
                 log<level::ERR>(
-                    "secure_monitor_service - ApplyRebootGaurd Exception.",
+                    "secure_monitor_service - ApplyRebootGuard Exception.",
                     entry("EXCEPTION=%s", e.what()));
             }
         }
@@ -485,7 +491,7 @@ void ApplyRebootGaurd()
     }
     catch (const std::exception& e)
     {
-        log<level::ERR>("ApplyRebootGaurd - Exception.",
+        log<level::ERR>("ApplyRebootGuard - Exception.",
                         entry("EXCEPTION=%s", e.what()));
     }
 }
@@ -517,7 +523,7 @@ static void StartWatchingUpdate(sdbusplus::message::message& msg)
                             std::get<std::string>(property.second));
                         if (value == VersionPurpose::BMC)
                         {
-                            ApplyRebootGaurd();
+                            ApplyRebootGuard();
                         }
                     }
                 }
