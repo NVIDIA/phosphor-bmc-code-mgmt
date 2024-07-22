@@ -41,7 +41,9 @@ using ManufacturerInherit = sdbusplus::server::object::object<
 class InventoryManager :
     public InventoryManagerInherit,
     OemCompleteResetInherit,
+#ifdef IMPLEMENT_SETTINGS_INTERFACE
     SettingsInventoryEntryInherit,
+#endif
     ManufacturerInherit
 {
   public:
@@ -55,12 +57,14 @@ class InventoryManager :
                                 InventoryManagerInherit::action::defer_emit),
         OemCompleteResetInherit(bus, SOFTWARE_OBJPATH,
                                 OemCompleteResetInherit::action::defer_emit),
+#ifdef IMPLEMENT_SETTINGS_INTERFACE
         SettingsInventoryEntryInherit(
             bus,
             (std::string{SOFTWARE_OBJPATH} + "/" +
              std::string{FIRMWARE_INV_NAME})
                 .c_str(),
             SettingsInventoryEntryInherit::action::defer_emit),
+#endif
         ManufacturerInherit(bus,
                             (std::string{SOFTWARE_OBJPATH} + "/" +
                              std::string{FIRMWARE_INV_NAME})

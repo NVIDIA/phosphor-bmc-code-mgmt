@@ -85,6 +85,7 @@ conf.set('NVIDIA_SECURE_BOOT', get_option('cec-update').enabled())
 # Configurable features
 conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').allowed())
 conf.set('WANT_SIGNATURE_VERIFY', get_option('verify-signature').allowed())
+conf.set('IMPLEMENT_SETTINGS_INTERFACE', get_option('implement-sw-settings-intf').allowed())
 
 # Configurable variables
 conf.set('ACTIVE_BMC_MAX_ALLOWED', get_option('active-bmc-max-allowed'))
