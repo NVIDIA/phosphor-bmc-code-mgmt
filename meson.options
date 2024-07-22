@@ -43,6 +43,10 @@ option(
     'implement-sw-settings-intf', type: 'feature', value: 'enabled',
     description: 'Implement xyz.openbmc_project.Software.Settings interface')
 
+option(
+    'oem-nvidia-hmc-emmc', type: 'feature', value: 'disabled',
+    description: 'Allow the setting of emmc specific code')
+
 # Variables
 option(
     'active-bmc-max-allowed', type: 'integer',

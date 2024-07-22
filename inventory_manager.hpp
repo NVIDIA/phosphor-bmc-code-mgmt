@@ -13,6 +13,10 @@
 #include <iostream>
 #include <string>
 
+#ifdef OEM_NVIDIA_HMC_EMMC_ENABLED
+#include "oem/nvidia/completeReset_utils.hpp"
+#endif
+
 namespace phosphor
 {
 namespace software
@@ -132,6 +136,10 @@ class InventoryManager :
         constexpr auto setCompleteResetWait = std::chrono::seconds(3);
         // Mark the read-write partition for recreation upon reboot.
         utils::execute("/sbin/fw_setenv", "openbmconce", "complete-reset");
+
+#ifdef OEM_NVIDIA_HMC_EMMC_ENABLED
+        completeReset_utils::checkAndSetEmmcLoggingErase();
+#endif
 
         // used to create a RF log upon reboot
         utils::execute("/sbin/fw_setenv", "openbmclog", "logs-reset");

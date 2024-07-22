@@ -20,6 +20,11 @@ add_project_arguments(
     language: 'cpp',
 )
 
+if get_option('oem-nvidia-hmc-emmc').enabled()
+    subdir('oem/nvidia')
+    add_project_arguments('-DOEM_NVIDIA_HMC_EMMC_ENABLED', language : 'cpp')
+endif
+
 cpp = meson.get_compiler('cpp')
 cppfs = meson.get_compiler('cpp').find_library('stdc++fs')
 
