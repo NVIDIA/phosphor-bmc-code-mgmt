@@ -134,7 +134,13 @@ auto Activation::activation(Activations value) -> Activations
         }
 
 #ifdef HOST_BIOS_UPGRADE
-        auto purpose = parent.versions.find(versionId)->second->purpose();
+        auto it = parent.versions.find(versionId);
+        if (it == parent.versions.end())
+        {
+            return softwareServer::Activation::activation(
+                softwareServer::Activation::Activations::Failed);
+        }
+        auto purpose = it->second->purpose();
         if (purpose == VersionPurpose::Host)
         {
             // Enable systemd signals
@@ -216,8 +222,13 @@ void Activation::onFlashWriteSuccess()
     ubootEnvVarsUpdated = false;
     Activation::unsubscribeFromSystemdSignals();
 
-    auto flashId = parent.versions.find(versionId)->second->path();
-    storePurpose(flashId, parent.versions.find(versionId)->second->purpose());
+    auto it = parent.versions.find(versionId);
+    if (it == parent.versions.end())
+    {
+        return;
+    }
+    auto flashId = it->second->path();
+    storePurpose(flashId, it->second->purpose());
 
     if (!redundancyPriority)
     {
@@ -346,7 +357,12 @@ void Activation::unitStateChange(sdbusplus::message_t& msg)
     }
 
 #ifdef HOST_BIOS_UPGRADE
-    auto purpose = parent.versions.find(versionId)->second->purpose();
+    auto it = parent.versions.find(versionId);
+    if (it == parent.versions.end())
+    {
+        return;
+    }
+    auto purpose = it->second->purpose();
     if (purpose == VersionPurpose::Host)
     {
         onStateChangesBios(msg);
@@ -470,8 +486,13 @@ void Activation::onStateChangesBios(sdbusplus::message_t& msg)
             activation(softwareServer::Activation::Activations::Active);
 
             info("Bios upgrade completed successfully.");
-            parent.biosVersion->version(
-                parent.versions.find(versionId)->second->version());
+            auto it = parent.versions.find(versionId);
+            if (it == parent.versions.end())
+            {
+                error("Cound not find version");
+                return;
+            }
+            parent.biosVersion->version(it->second->version());
 
             // Delete the uploaded activation
             boost::asio::post(getIOContext(), [this]() {

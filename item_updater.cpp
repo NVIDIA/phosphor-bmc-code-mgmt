@@ -568,6 +568,10 @@ void ItemUpdater::freePriority(uint8_t value, const std::string& versionId)
         {
             ++freePriorityValue;
             auto it = activations.find(element.first);
+            if (it == activations.end())
+            {
+                continue;
+            }
             it->second->redundancyPriority.get()->sdbusPriority(
                 freePriorityValue);
         }
@@ -595,7 +599,12 @@ void ItemUpdater::reset()
 
 void ItemUpdater::removeReadOnlyPartition(std::string versionId)
 {
-    auto flashId = versions.find(versionId)->second->path();
+    auto it = versions.find(versionId);
+    if (it == versions.end())
+    {
+        return;
+    }
+    auto flashId = it->second->path();
     helper.removeVersion(flashId);
 }
 
