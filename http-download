@@ -90,7 +90,7 @@ fi
 if [ -d "$destDir" ]; then
     outputOption="-o $destDir/$filename"
 else
-    if [ -f "$destDir" ]; then
+    if [[ ( -f "$destDir" ) || (( -c "$destDir") &&  ("$destDir" == *'rshim'* )) ]]; then
         outputOption="-o $destDir"
     else
         echo "Invalid destDir: $destDir. Please provide a valid path."
