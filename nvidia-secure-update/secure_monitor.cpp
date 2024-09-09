@@ -103,7 +103,7 @@ class CecImpl : public CecInherit
 {
   public:
     CecImpl(sdbusplus::bus::bus& bus, const std::string& objPath) :
-        CecInherit(bus, (objPath).c_str()) {};
+        CecInherit(bus, (objPath).c_str()){};
 
     bool getStatus()
     {

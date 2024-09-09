@@ -57,7 +57,8 @@ void Watch::createInotify(sd_event* loop, const fs::path& path)
 
 Watch::Watch(sd_event* loop, const fs::path& filePath,
              std::function<int(std::string&)> imageCallback) :
-    path(filePath), imageCallback(imageCallback)
+    path(filePath),
+    imageCallback(imageCallback)
 {
     // Check if IMAGE DIR exists.
     if (!fs::is_directory(path))

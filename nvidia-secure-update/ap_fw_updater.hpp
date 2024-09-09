@@ -42,7 +42,7 @@ class UpdateManager
                 sdbusRule::path("/org/freedesktop/systemd1") +
                 sdbusRule::interface("org.freedesktop.systemd1.Manager"),
             std::bind(std::mem_fn(&UpdateManager::unitStateChange), this,
-                      std::placeholders::_1)) {};
+                      std::placeholders::_1)){};
 
     int processImage(const std::string& filePath);
 

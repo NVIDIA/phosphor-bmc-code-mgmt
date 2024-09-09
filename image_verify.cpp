@@ -38,7 +38,8 @@ constexpr auto hashFunctionTag = "HashType";
 
 Signature::Signature(const fs::path& imageDirPath,
                      const fs::path& signedConfPath) :
-    imageDirPath(imageDirPath), signedConfPath(signedConfPath)
+    imageDirPath(imageDirPath),
+    signedConfPath(signedConfPath)
 {
     fs::path file(imageDirPath / MANIFEST_FILE_NAME);
 

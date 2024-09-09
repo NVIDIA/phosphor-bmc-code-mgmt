@@ -187,12 +187,14 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     }
 
     // Clean the previous status
-    updateDownloadStatusProperties(sourceFilePath, target, DownloadStatus::Init);
+    updateDownloadStatusProperties(sourceFilePath, target,
+                                   DownloadStatus::Init);
 
     if (sourceFilePath.empty())
     {
         error("sourceFilePath is empty");
-        updateDownloadStatusProperties(sourceFilePath, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFilePath, target,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("sourceFilePath"),
                               Argument::ARGUMENT_VALUE(sourceFilePath.c_str()));
         return;
@@ -209,7 +211,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (serverAddress.empty())
     {
         error("ServerAddress is empty");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("ServerAddress"),
                               Argument::ARGUMENT_VALUE(serverAddress.c_str()));
         return;
@@ -218,7 +221,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (target.empty())
     {
         error("Target is empty");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(target.c_str()));
         return;
@@ -227,7 +231,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (!fs::exists(target))
     {
         error("Target does not exist");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(target.c_str()));
         return;
@@ -236,7 +241,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (username.empty())
     {
         error("Username is empty");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("username"),
                               Argument::ARGUMENT_VALUE(username.c_str()));
         return;
@@ -247,7 +253,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     if (!argfile.is_open())
     {
         error("Failed to open an args file");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Invalid);
         elog<InternalFailure>();
         return;
     }
@@ -271,7 +278,8 @@ void Download::downloadViaSCP(std::string serverAddress, std::string username,
     catch (const std::exception& e)
     {
         error("Failed to start scp-transfer service");
-        updateDownloadStatusProperties(fileName, target, DownloadStatus::Failed);
+        updateDownloadStatusProperties(fileName, target,
+                                       DownloadStatus::Failed);
         elog<InternalFailure>();
         return;
     }
@@ -419,7 +427,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (isDownloadServiceRunning(httpDownloadService))
     {
         error("HTTP download is already in progress");
-        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(("HTTP download is already in progress")));
+        elog<NotAllowed>(xyz::openbmc_project::Common::NotAllowed::REASON(
+            ("HTTP download is already in progress")));
         return;
     }
 
@@ -429,7 +438,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (sourceFile.empty())
     {
         error("sourceFile is empty");
-        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFile, destDir,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("sourceFile"),
                               Argument::ARGUMENT_VALUE(sourceFile.c_str()));
         return;
@@ -446,7 +456,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (serverAddress.empty())
     {
         error("ServerAddress is empty");
-        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFile, destDir,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("ServerAddress"),
                               Argument::ARGUMENT_VALUE(serverAddress.c_str()));
         return;
@@ -455,7 +466,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (destDir.empty())
     {
         error("DestFile is empty");
-        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFile, destDir,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("destDir"),
                               Argument::ARGUMENT_VALUE(destDir.c_str()));
         return;
@@ -464,7 +476,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (!fs::exists(destDir))
     {
         error("Destination file including path does not exist");
-        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFile, destDir,
+                                       DownloadStatus::Invalid);
         elog<InvalidArgument>(Argument::ARGUMENT_NAME("Target"),
                               Argument::ARGUMENT_VALUE(destDir.c_str()));
         return;
@@ -475,15 +488,16 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     if (!argfile.is_open())
     {
         error("Failed to open an args file for http download");
-        updateDownloadStatusProperties(sourceFile, destDir, DownloadStatus::Invalid);
+        updateDownloadStatusProperties(sourceFile, destDir,
+                                       DownloadStatus::Invalid);
         elog<InternalFailure>();
         return;
     }
 
-    std::string cmdContent = "serverAddress=" + serverAddress + "\n"
-                             + "sourceFile=" + sourceFile+ "\n"
-                             + "destDir=" + destDir + "\n"
-                             + "protocol=" + (secure ? "HTTPS" : "HTTP") + "\n";
+    std::string cmdContent = "serverAddress=" + serverAddress + "\n" +
+                             "sourceFile=" + sourceFile + "\n" +
+                             "destDir=" + destDir + "\n" +
+                             "protocol=" + (secure ? "HTTPS" : "HTTP") + "\n";
 
     // Write cmdContent the args file
     argfile << cmdContent;
@@ -499,7 +513,8 @@ void Download::downloadViaHTTP(std::string serverAddress, bool secure,
     catch (const std::exception& e)
     {
         error("Failed to start http-download service");
-        updateDownloadStatusProperties(fileName, destDir, DownloadStatus::Failed);
+        updateDownloadStatusProperties(fileName, destDir,
+                                       DownloadStatus::Failed);
         elog<InternalFailure>();
         return;
     }

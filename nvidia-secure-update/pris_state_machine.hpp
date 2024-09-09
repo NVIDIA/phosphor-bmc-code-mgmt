@@ -29,7 +29,7 @@ class PrisMachineContext : public MachineContext
 {
   public:
     PrisMachineContext(Activation* activationObj) :
-        MachineContext(activationObj) {
+        MachineContext(activationObj){
 
         };
 };

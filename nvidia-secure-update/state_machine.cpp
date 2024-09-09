@@ -8,8 +8,9 @@ namespace updater
 {
 StateMachine::StateMachine(uint8_t maxStates, MachineContext& ctx,
                            uint8_t initialState) :
-    maxNumStates(maxStates), currentState(initialState), newState(initialState),
-    transitionFired(false), myMachineContext(ctx)
+    maxNumStates(maxStates),
+    currentState(initialState), newState(initialState), transitionFired(false),
+    myMachineContext(ctx)
 {
     if (maxNumStates > static_cast<uint8_t>(StateCapacity::MAX_STATE_CAPACITY))
     {

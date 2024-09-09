@@ -1,9 +1,9 @@
 #pragma once
 
+#include "xyz/openbmc_project/Common/DownloadProgress/server.hpp"
+#include "xyz/openbmc_project/Common/HTTP/server.hpp"
 #include "xyz/openbmc_project/Common/SCP/server.hpp"
 #include "xyz/openbmc_project/Common/TFTP/server.hpp"
-#include "xyz/openbmc_project/Common/HTTP/server.hpp"
-#include "xyz/openbmc_project/Common/DownloadProgress/server.hpp"
 
 #include <sdbusplus/bus.hpp>
 
@@ -36,7 +36,7 @@ class Download : public DownloadInherit
      * @param[in] objPath   - The Dbus object path
      */
     Download(sdbusplus::bus_t& bus, const std::string& objPath) :
-        DownloadInherit(bus, (objPath).c_str()) {};
+        DownloadInherit(bus, (objPath).c_str()){};
 
     /**
      * @brief Download the specified image via TFTP
@@ -90,13 +90,14 @@ class Download : public DownloadInherit
     std::string generateSelfKeyPair() override;
 
     /**
-    * @brief Implements the DownloadViaHTTP D-Bus method functionality.
-    *
-    * @param[in] serverAddress - The HTTP/HTTPS Server IP Address.
-    * @param[in] secure - The option to use secure HTTPS or not.
-    * @param[in] sourceFile - The source file on the remote server.
-    * @param[in] destDir - The destination directory (local path) to apply the image
-    **/
+     * @brief Implements the DownloadViaHTTP D-Bus method functionality.
+     *
+     * @param[in] serverAddress - The HTTP/HTTPS Server IP Address.
+     * @param[in] secure - The option to use secure HTTPS or not.
+     * @param[in] sourceFile - The source file on the remote server.
+     * @param[in] destDir - The destination directory (local path) to apply the
+     *image
+     **/
     void downloadViaHTTP(std::string serverAddress, bool secure,
                          std::string sourceFile, std::string destDir) override;
 
@@ -108,8 +109,10 @@ class Download : public DownloadInherit
      * @param[in] destDir      - The destination directory to apply the image.
      * @param[in] status       - The current status of the download.
      **/
-    inline void updateDownloadStatusProperties(std::string& sourceFile, std::string& destDir,
-                                               DownloadStatus status) {
+    inline void updateDownloadStatusProperties(std::string& sourceFile,
+                                               std::string& destDir,
+                                               DownloadStatus status)
+    {
         DownloadInherit::sourceFile(sourceFile);
         DownloadInherit::destDir(destDir);
         DownloadInherit::status(status);
