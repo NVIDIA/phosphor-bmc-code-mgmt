@@ -21,8 +21,9 @@ namespace software
 namespace updater
 {
 
+using FactoryResetInherit = sdbusplus::server::object::object<
+    sdbusplus::xyz::openbmc_project::Common::server::FactoryReset>;
 using ItemUpdaterInherit = sdbusplus::server::object_t<
-    sdbusplus::server::xyz::openbmc_project::common::FactoryReset,
     sdbusplus::server::xyz::openbmc_project::control::FieldMode,
     sdbusplus::server::xyz::openbmc_project::association::Definitions,
     sdbusplus::server::xyz::openbmc_project::collection::DeleteAll,
@@ -36,7 +37,7 @@ using AssociationList =
 /** @class ItemUpdater
  *  @brief Manages the activation of the BMC version items.
  */
-class ItemUpdater : public ItemUpdaterInherit
+class ItemUpdater : public ItemUpdaterInherit, FactoryResetInherit
 {
   public:
     /*
@@ -56,6 +57,8 @@ class ItemUpdater : public ItemUpdaterInherit
     ItemUpdater(sdbusplus::bus_t& bus, const std::string& path) :
         ItemUpdaterInherit(bus, path.c_str(),
                            ItemUpdaterInherit::action::defer_emit),
+        FactoryResetInherit(bus, BMC_FACTORY_RESET_OBJPATH,
+                            FactoryResetInherit::action::defer_emit),
         bus(bus), helper(bus),
         versionMatch(bus,
                      MatchRules::interfacesAdded() +
@@ -70,7 +73,7 @@ class ItemUpdater : public ItemUpdaterInherit
 #ifdef HOST_BIOS_UPGRADE
         createBIOSObject();
 #endif
-        emit_object_added();
+        ItemUpdaterInherit::emit_object_added();
     };
 
     /** @brief Save priority value to persistent storage (flash and optionally
