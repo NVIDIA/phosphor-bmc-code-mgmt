@@ -107,12 +107,12 @@ exec 4>&1  # Save stdout to file descriptor 4
 totalTimeout=2700  # seconds
 
 if [[ $protocol == "HTTP" ]]; then
-    curlOptions="-vlf --progress-bar --max-time $totalTimeout"
+    curlOptions="-vlf --progress-bar --max-time $totalTimeout -w '%{json}\n'"
     curlCommand="curl $curlOptions $outputOption http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
 if [[ $protocol == "HTTPS" ]]; then
-    curlOptions="-vlf --progress-bar --max-time $totalTimeout --capath /etc/ssl/certs/authority"
+    curlOptions="-vlf --progress-bar --max-time $totalTimeout -w '%{json}\n' --capath /etc/ssl/certs/authority"
     curlCommand="curl $curlOptions $outputOption https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
 fi
 
@@ -132,27 +132,27 @@ endTime=$((startTime + timeout))
 downloadStarted=false
 downloadStatus=""
 while true; do
-    if grep -q "No such file or directory" "$logFile"; then
+    if grep -qi "No such file or directory" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
         break
     fi
-    if grep -q "Could not resolve host" "$logFile"; then
+    if grep -qi "Could not resolve host" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
         break
     fi
-    if grep -q "Couldn't connect to server" "$logFile"; then
+    if grep -qi "Couldn't connect to server" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.UnknownHost"
         break
     fi
-    if grep -q "404 Not Found" "$logFile"; then
+    if grep -qi "404 Not Found" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
         break
     fi
-    if grep -q "SSL certificate problem" "$logFile"; then
+    if grep -qi "SSL certificate problem" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.BadCert"
         break
     fi
-    if grep -q "Content-Length" "$logFile"; then
+    if grep -qi "Content-Length" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Started"
         downloadStarted=true
         break
@@ -191,20 +191,20 @@ if [ "$downloadStarted" = true ]; then
     downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.InProgress"
 
     while true; do
-        if grep -q "returned error: 404" "$logFile"; then
+        if grep -qi "returned error: 404" "$logFile"; then
             downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid"
             update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
             break
         fi
 
-        if grep -q "returned error" "$logFile"; then
+        if grep -qi "returned error" "$logFile"; then
             downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
             update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" 0
             break
         fi
 
         # Received connection final status. Check final progress.
-        if grep -q "Closing connection" "$logFile" || grep -q "left intact" "$logFile"; then
+        if grep -qi "Closing connection" "$logFile" || grep -qi "left intact" "$logFile" || grep -qi "\"exitcode\"" "$logFile"; then
             get_progress "$logFile"
             progress=$?
             if [[ "$progress" -eq 100 ]]; then
