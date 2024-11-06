@@ -821,6 +821,10 @@ void ItemUpdater::freeSpace([[maybe_unused]] const Activation& caller)
              server::Activation::Activations::Failed))
         {
             count++;
+            if (versions.find(iter.second->versionId) == versions.end())
+            {
+                continue;
+            }
             // Don't put the functional version on the queue since we can't
             // remove the "running" BMC version.
             // If ACTIVE_BMC_MAX_ALLOWED <= 1, there is only one active BMC,
