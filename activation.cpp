@@ -113,7 +113,13 @@ auto Activation::activation(Activations value) -> Activations
         }
 #endif
 
-        auto versionStr = parent.versions.find(versionId)->second->version();
+        auto versionItr = parent.versions.find(versionId);
+        if (versionItr == parent.versions.end())
+        {
+            return softwareServer::Activation::activation(
+                softwareServer::Activation::Activations::Failed);
+        }
+        auto versionStr = versionItr->second->version();
 
         if (!minimum_ship_level::verify(versionStr))
         {
