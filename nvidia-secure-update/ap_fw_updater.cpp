@@ -138,18 +138,27 @@ bool UpdateManager::checkActiveBMCUpdate()
             try
             {
                 auto& intfMap = objIter.second;
-                auto& activationProps =
-                    intfMap.at("xyz.openbmc_project.Software.Activation");
-                auto activation =
-                    std::get<std::string>(activationProps.at("Activation"));
 
-                if ((Activation::convertActivationsFromString(activation) ==
-                     Activation::Activations::Activating))
+                // Check if "xyz.openbmc_project.Software.Activation" exists
+                auto activationIt =
+                    intfMap.find("xyz.openbmc_project.Software.Activation");
+
+                if (activationIt != intfMap.end())
                 {
-                    log<level::ERR>(
-                        "BMC firmware update has been triggred and in "
-                        "progress");
-                    return true;
+                    auto& activationProps =
+                        intfMap.at("xyz.openbmc_project.Software.Activation");
+
+                    auto activation =
+                        std::get<std::string>(activationProps.at("Activation"));
+
+                    if ((Activation::convertActivationsFromString(activation) ==
+                         Activation::Activations::Activating))
+                    {
+                        log<level::ERR>(
+                            "BMC firmware update has been triggred and in "
+                            "progress");
+                        return true;
+                    }
                 }
             }
             catch (const std::exception& e)
