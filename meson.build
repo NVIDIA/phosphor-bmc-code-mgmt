@@ -70,6 +70,7 @@ conf.set_quoted('FUNCTIONAL_REV_ASSOCIATION', 'software_version')
 conf.set_quoted('UPDATEABLE_FWD_ASSOCIATION', 'updateable')
 conf.set_quoted('UPDATEABLE_REV_ASSOCIATION', 'software_version')
 conf.set_quoted('RUNNING_BMC', '_BMC_Firmware')
+conf.set_quoted('OBJ_MANAGER_PATH', get_option('obj-manager-path'))
 
 # Filesystem files and directories
 # The prefix path for the versioned read-only bmc partitions

@@ -18,7 +18,7 @@ int main()
     sdbusplus::asio::connection bus(getIOContext());
 
     // Add sdbusplus ObjectManager.
-    sdbusplus::server::manager_t objManager(bus, SOFTWARE_OBJPATH);
+    sdbusplus::server::manager_t objManager(bus, OBJ_MANAGER_PATH);
 
     phosphor::software::updater::ItemUpdater updater(bus, SOFTWARE_OBJPATH);
 

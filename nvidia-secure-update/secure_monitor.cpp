@@ -387,7 +387,7 @@ void ApplyRebootGuard()
     try
     {
         auto objValueTree = getManagedObjects(BUSNAME_UPDATER,
-                                              SOFTWARE_OBJPATH);
+                                              OBJ_MANAGER_PATH);
 
         // Read os-release from /etc/ to get the functional BMC version
         auto functionalVersion = getBMCVersion(OS_RELEASE_FILE);

@@ -131,7 +131,7 @@ bool UpdateManager::checkActiveBMCUpdate()
     try
     {
         auto objValueTree = getManagedObjects(BUSNAME_UPDATER,
-                                              SOFTWARE_OBJPATH);
+                                              OBJ_MANAGER_PATH);
 
         for (const auto& objIter : objValueTree)
         {

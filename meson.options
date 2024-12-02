@@ -176,3 +176,9 @@ option(
     value: '',
     description: 'Name of BMC Software Manufacturer.',
 )
+
+option(
+    'obj-manager-path', type: 'string',
+    value: '/xyz/openbmc_project/software',
+    description: 'Path of ObjectManager.',
+)

@@ -38,7 +38,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
     {
         bus.request_name(BUSNAME_NVIDIA_UPDATER);
 
-        sdbusplus::server::manager::manager objManager(bus, SOFTWARE_OBJPATH);
+        sdbusplus::server::manager::manager objManager(bus, OBJ_MANAGER_PATH);
 
         std::unique_ptr<phosphor::software::manager::VersionInventoryEntry>
             versionPtr = std::make_unique<
