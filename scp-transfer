@@ -141,8 +141,15 @@ if [ "$transfer_started" = true ]; then
     # There is a known bug related to running Dropbear SCP from the BMC.
     # When transferring files, the transfer may succeed, but an "Invalid Argument"
     # error is generated at the end.
-    transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
-    echo "Transfer completed"
+
+    # Check if the scp process exited with a signal
+    if [ $? -ge 128 ]; then
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
+        echo "Transfer failed"
+    else
+        transferStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
+        echo "Transfer completed"
+    fi
     busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Status s $transferStatus
     busctl set-property xyz.openbmc_project.Software.Download /xyz/openbmc_project/software xyz.openbmc_project.Common.DownloadProgress Progress y 100
 fi
