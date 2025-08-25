@@ -36,9 +36,9 @@ TEST(InventoryTest, InventoryManager)
         .Times(3)
         .WillRepeatedly(
             Invoke([=](sd_bus*, const char*, const char*, const char** names) {
-        EXPECT_STREQ("Associations", names[0]);
-        return 0;
-    }));
+                EXPECT_STREQ("Associations", names[0]);
+                return 0;
+            }));
 
     EXPECT_CALL(sdbus_mock,
                 sd_bus_emit_properties_changed_strv(
@@ -47,14 +47,15 @@ TEST(InventoryTest, InventoryManager)
         .Times(2)
         .WillRepeatedly(
             Invoke([=](sd_bus*, const char*, const char*, const char** names) {
-        std::vector<std::string> expectedNames = {"Purpose", "Version"};
-        if (std::none_of(
-                expectedNames.begin(), expectedNames.end(),
-                [names](const std::string s) { return s == names[0]; }))
-        {
-            ADD_FAILURE();
-        }
-        return 0;
-    }));
+                std::vector<std::string> expectedNames = {"Purpose", "Version"};
+                if (std::none_of(expectedNames.begin(), expectedNames.end(),
+                                 [names](const std::string s) {
+                                     return s == names[0];
+                                 }))
+                {
+                    ADD_FAILURE();
+                }
+                return 0;
+            }));
     phosphor::software::manager::InventoryManager manager(bus_mock);
 }

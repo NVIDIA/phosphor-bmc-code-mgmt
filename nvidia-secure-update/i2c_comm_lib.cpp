@@ -86,8 +86,8 @@ uint8_t I2CCommLib::GetCECState()
 
     try
     {
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
         uint8_t size = buf.size();
         myDevice->readCustom(deviceOffset, size, &buf[0]);
 
@@ -127,8 +127,8 @@ uint8_t I2CCommLib::GetLastCmdStatus()
 
     try
     {
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = buf.size();
         myDevice->readCustom(deviceOffset, size, &buf[0]);
@@ -168,8 +168,8 @@ uint8_t I2CCommLib::QueryAboutInterrupt()
 
     try
     {
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = buf.size();
         myDevice->readCustom(deviceOffset, size, &buf[0]);
@@ -210,8 +210,8 @@ uint8_t I2CCommLib::GetFWUpdateStatus()
 
     try
     {
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = buf.size();
 
@@ -240,8 +240,8 @@ void I2CCommLib::GetCecVersion(ReadCecVersion& readStruct)
     memcpy(&buf[0], &readStruct, sizeof(readStruct));
     try
     {
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
         uint8_t size = buf.size();
         myDevice->readCustom(deviceOffset, size, &buf[0]);
         VerifyCheckSum(buf);
@@ -307,8 +307,8 @@ void I2CCommLib::SendBootComplete()
     {
         UpdateCheckSum(buf);
 
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = buf.size();
 
@@ -378,8 +378,8 @@ void I2CCommLib::SendStartFWUpdate(uint32_t imgFileSize, uint8_t fwType)
     {
         UpdateCheckSum(buf);
 
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = buf.size();
 
@@ -616,8 +616,8 @@ void I2CCommLib::SendCopyImageComplete()
 
         uint8_t size = buf.size();
 
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
         myDevice->writeCustom(deviceOffset, size, &buf[0]);
     }
     catch (const std::exception& e)
@@ -673,8 +673,8 @@ void I2CCommLib::SendBMCReset()
 
         uint8_t size = buf.size();
 
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
         myDevice->writeCustom(deviceOffset, size, &buf[0]);
     }
     catch (const std::exception& e)
@@ -1046,8 +1046,8 @@ void I2CCommLib::GetAttestation(uint16_t dataSize, uint16_t blkSize)
 
         UpdateCheckSum(writeBuf);
 
-        std::unique_ptr<I2CInterface> myDevice = create(busId, deviceAddr,
-                                                        true);
+        std::unique_ptr<I2CInterface> myDevice =
+            create(busId, deviceAddr, true);
 
         uint8_t size = writeBuf.size();
         uint8_t retry{0};
@@ -1147,8 +1147,8 @@ void I2CCommLib::GetAttestation(uint16_t dataSize, uint16_t blkSize)
             CreateDERSignature(completeBuf, dataSize, signatureFile.string());
             try
             {
-                auto valid = VerifySignature(dataFile, signatureFile,
-                                             publicKeyFile);
+                auto valid =
+                    VerifySignature(dataFile, signatureFile, publicKeyFile);
                 status = (!valid) ? "Failed.Signature validation failure."
                                   : status;
             }

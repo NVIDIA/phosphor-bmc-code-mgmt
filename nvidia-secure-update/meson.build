@@ -4,60 +4,44 @@ lib_headers = ['.', '../']
 ssl = dependency('openssl')
 
 gpiodcxx = dependency(
-     'libgpiodcxx',
-     fallback: ['libgpiod', 'gpiodcxx_dep'],
-     default_options: ['bindings=cxx'],
+    'libgpiodcxx',
+    fallback: ['libgpiod', 'gpiodcxx_dep'],
+    default_options: ['bindings=cxx'],
 )
 libgpiodcxx = dependency('libgpiodcxx')
-sdeventplus = dependency('sdeventplus') 
+sdeventplus = dependency('sdeventplus')
 
-nvidia_secure_monitor_sources = files(
-    'i2c.cpp',
-    'i2c_comm_lib.cpp',
-    'secure_monitor.cpp',
-    '../openssl_alloc.cpp'
-)
+nvidia_secure_monitor_sources = files('../openssl_alloc.cpp'
+, 'i2c.cpp', 'i2c_comm_lib.cpp', 'secure_monitor.cpp')
 
-nvidia_boot_complete_sources = files(
-    'i2c.cpp',
-    'i2c_comm_lib.cpp',
-    'nvidia_boot_complete.cpp',
-    '../openssl_alloc.cpp'
-)
+nvidia_boot_complete_sources = files('../openssl_alloc.cpp'
+, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_boot_complete.cpp')
 
 nvidia_fw_updater_sources = files(
-    'state_machine_context.cpp',
-    'state_machine.cpp',
+    '../openssl_alloc.cpp',
+    '../watch.cpp',
+    'ap_fw_updater.cpp',
+    'ap_fw_updater_main.cpp',
     'i2c.cpp',
     'i2c_comm_lib.cpp',
     'pris_ap_fw_state_machine.cpp',
-    'ap_fw_updater.cpp',
-    'pris_state_machine.cpp', 
-    'ap_fw_updater_main.cpp',
-    '../watch.cpp',
-    '../openssl_alloc.cpp'
+    'pris_state_machine.cpp',
+    'state_machine.cpp',
+    'state_machine_context.cpp',
 )
 
-nvidia_secure_copier_sources = files(
-    'i2c.cpp',
-    'i2c_comm_lib.cpp',
-    'nvidia_copy_image.cpp',
-    '../openssl_alloc.cpp'
-)
+nvidia_secure_copier_sources = files('../openssl_alloc.cpp'
+, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_copy_image.cpp')
 
-nvidia_fw_tool_sources = files(
-    'i2c.cpp',
-    'i2c_comm_lib.cpp',
-    'nvidia_fw_services.cpp',
-    '../openssl_alloc.cpp'
-)
+nvidia_fw_tool_sources = files('../openssl_alloc.cpp'
+, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_fw_services.cpp')
 
 executable(
     'nvidia-secure-monitor',
     nvidia_secure_monitor_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, gpiodcxx, sdeventplus],
-    install: true
+    install: true,
 )
 
 executable(
@@ -65,12 +49,13 @@ executable(
     nvidia_boot_complete_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, gpiodcxx, sdeventplus],
-    install: true
+    install: true,
 )
 
-install_data('obmc-secure-copy-image',
+install_data(
+    'obmc-secure-copy-image',
     install_mode: 'rwxr-xr-x',
-    install_dir: get_option('bindir')
+    install_dir: get_option('bindir'),
 )
 
 executable(
@@ -78,7 +63,7 @@ executable(
     nvidia_fw_updater_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, sdeventplus],
-    install: true
+    install: true,
 )
 
 executable(
@@ -86,7 +71,7 @@ executable(
     nvidia_secure_copier_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, sdeventplus],
-    install: true
+    install: true,
 )
 
 executable(
@@ -94,5 +79,5 @@ executable(
     nvidia_fw_tool_sources,
     include_directories: include_directories(lib_headers),
     dependencies: [cppfs, deps, ssl, sdeventplus],
-    install: true
+    install: true,
 )

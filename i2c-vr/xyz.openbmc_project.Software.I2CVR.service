@@ -1,0 +1,14 @@
+[Unit]
+Description=Voltage Regulator Software Update Daemon
+After=xyz.openbmc_project.ObjectMapper
+After=xyz.openbmc_project.EntityManager.service
+
+[Service]
+Restart=always
+Type=dbus
+BusName=xyz.openbmc_project.Software.I2CVR
+RemainAfterExit=no
+ExecStart=/usr/libexec/phosphor-code-mgmt/phosphor-i2cvr-software-update
+
+[Install]
+WantedBy=multi-user.target

@@ -103,7 +103,7 @@ class CecImpl : public CecInherit
 {
   public:
     CecImpl(sdbusplus::bus::bus& bus, const std::string& objPath) :
-        CecInherit(bus, (objPath).c_str()){};
+        CecInherit(bus, (objPath).c_str()) {};
 
     bool getStatus()
     {
@@ -136,10 +136,9 @@ void RebootBmc()
     }
 }
 
-static int GpioInterruptHandler([[maybe_unused]] sd_event_source* s,
-                                [[maybe_unused]] int fd,
-                                [[maybe_unused]] uint32_t revents,
-                                [[maybe_unused]] void* userdata)
+static int GpioInterruptHandler(
+    [[maybe_unused]] sd_event_source* s, [[maybe_unused]] int fd,
+    [[maybe_unused]] uint32_t revents, [[maybe_unused]] void* userdata)
 {
     try
     {
@@ -286,8 +285,8 @@ std::string getBMCVersion(const std::string& releaseFilePath)
             //    is 0 for the unquoted case, so substr() is called with a len
             //    parameter of npos (-1) which according to the documentation
             //    indicates to use all characters until the end of the string.
-            version = versionValue.substr(pos,
-                                          versionValue.find_last_of('"') - pos);
+            version =
+                versionValue.substr(pos, versionValue.find_last_of('"') - pos);
             break;
         }
     }
@@ -386,8 +385,8 @@ void ApplyRebootGuard()
 {
     try
     {
-        auto objValueTree = getManagedObjects(BUSNAME_UPDATER,
-                                              OBJ_MANAGER_PATH);
+        auto objValueTree =
+            getManagedObjects(BUSNAME_UPDATER, OBJ_MANAGER_PATH);
 
         // Read os-release from /etc/ to get the functional BMC version
         auto functionalVersion = getBMCVersion(OS_RELEASE_FILE);

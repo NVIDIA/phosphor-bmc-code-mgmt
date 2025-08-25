@@ -1,5 +1,1 @@
-install_headers(
-    'completeReset_utils.hpp',
-)
-
-
+install_headers('completeReset_utils.hpp')

@@ -116,9 +116,8 @@ void I2CDevice::writeCustom(uint8_t reg, uint8_t size, uint8_t* data)
     }
 }
 
-std::unique_ptr<I2CInterface> I2CDevice::create(uint8_t busId, uint8_t devAddr,
-                                                bool useCustom,
-                                                InitialState initialState)
+std::unique_ptr<I2CInterface> I2CDevice::create(
+    uint8_t busId, uint8_t devAddr, bool useCustom, InitialState initialState)
 {
     std::unique_ptr<I2CDevice> dev(
         new I2CDevice(busId, devAddr, useCustom, initialState));

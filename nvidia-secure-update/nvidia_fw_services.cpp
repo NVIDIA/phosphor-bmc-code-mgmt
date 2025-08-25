@@ -106,8 +106,8 @@ int main(int argc, char** argv)
         phosphor::NvidiaFWService::CleanUpFiles();
 
         fsys::path publicKeyFile(publicKeyFilename);
-        fsys::path pKeyFileDestination(cecAttestFolder +
-                                       cecAttestPublicKeyFile);
+        fsys::path pKeyFileDestination(
+            cecAttestFolder + cecAttestPublicKeyFile);
 
         if (fsys::exists(publicKeyFile.string()) &&
             is_regular_file(publicKeyFile))

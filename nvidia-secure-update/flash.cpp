@@ -270,8 +270,8 @@ void Activation::onStateChanges(sdbusplus::message::message& msg)
         // Read the msg and populate each variable
         msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
 
-        auto copyImageServiceFile = "obmc-secure-copy-image@" + versionId +
-                                    ".service";
+        auto copyImageServiceFile =
+            "obmc-secure-copy-image@" + versionId + ".service";
 
         if (newStateUnit != copyImageServiceFile)
         {

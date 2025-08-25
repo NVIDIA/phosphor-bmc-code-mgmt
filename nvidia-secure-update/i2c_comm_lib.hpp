@@ -220,19 +220,20 @@ class I2CCommLib
     static constexpr uint8_t SIGNATURE_SIZE{96};
     static constexpr int SUCCESS{0};
     static constexpr int FAILURE{-1};
-    std::vector<std::string> commandStatusStr{"SUCCESS",
-                                              "ERR_I2C_CHECKSUM",
-                                              "ERR_CMD_LENGTH_MISMATCH",
-                                              "ERR_CMD_VERSION_SUPPORTED",
-                                              "ERR_BUSY",
-                                              "ERR_FLASH_ERROR",
-                                              "ERR_CMD_INVALID",
-                                              "ERR_CMD_INTERNAL",
-                                              "ERR_PRIMARY_REGION_DEGRADED",
-                                              "ERR_SECONDARY_REGION_DEGRADED",
-                                              "ERR_RECOVERY_REGION_DEGRADED",
-                                              "ERR_PRIMARY_SECONDARY_MISMATCH",
-                                              "UNKNOWN"};
+    std::vector<std::string> commandStatusStr{
+        "SUCCESS",
+        "ERR_I2C_CHECKSUM",
+        "ERR_CMD_LENGTH_MISMATCH",
+        "ERR_CMD_VERSION_SUPPORTED",
+        "ERR_BUSY",
+        "ERR_FLASH_ERROR",
+        "ERR_CMD_INVALID",
+        "ERR_CMD_INTERNAL",
+        "ERR_PRIMARY_REGION_DEGRADED",
+        "ERR_SECONDARY_REGION_DEGRADED",
+        "ERR_RECOVERY_REGION_DEGRADED",
+        "ERR_PRIMARY_SECONDARY_MISMATCH",
+        "UNKNOWN"};
 };
 
 } // namespace updater

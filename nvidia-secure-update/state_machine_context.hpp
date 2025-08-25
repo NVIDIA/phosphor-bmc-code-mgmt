@@ -20,7 +20,7 @@ class MachineContext
   public:
     MachineContext(Activation* activationObj);
 
-    virtual ~MachineContext(){};
+    virtual ~MachineContext() {};
 
     void SetMachineFailed(std::string& msg);
 

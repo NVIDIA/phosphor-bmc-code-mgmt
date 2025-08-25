@@ -1,0 +1,2 @@
+subdir('exampledevice')
+subdir('software')

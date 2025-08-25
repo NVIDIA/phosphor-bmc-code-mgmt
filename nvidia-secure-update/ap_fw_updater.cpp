@@ -130,8 +130,8 @@ bool UpdateManager::checkActiveBMCUpdate()
 {
     try
     {
-        auto objValueTree = getManagedObjects(BUSNAME_UPDATER,
-                                              OBJ_MANAGER_PATH);
+        auto objValueTree =
+            getManagedObjects(BUSNAME_UPDATER, OBJ_MANAGER_PATH);
 
         for (const auto& objIter : objValueTree)
         {
@@ -212,8 +212,8 @@ void UpdateManager::progress(uint8_t progress, std::string msg,
     fs::path filePath(std::any_cast<std::string>(
         sUpdateMachineContext->GetData(keyFWImgName)));
 
-    std::string fileName = {phosphor::software::firmwareupdater::cecFWFolder +
-                            progressFile};
+    std::string fileName = {
+        phosphor::software::firmwareupdater::cecFWFolder + progressFile};
 
     if (activationProgress)
     {
@@ -322,8 +322,8 @@ int UpdateManager::processImage(const std::string& filePath)
         {
             activationProgress.reset();
         }
-        activationProgress = std::make_unique<ApFwActivationProgress>(bus,
-                                                                      objPath);
+        activationProgress =
+            std::make_unique<ApFwActivationProgress>(bus, objPath);
 
         if (!fs::is_regular_file(filePath))
         {
