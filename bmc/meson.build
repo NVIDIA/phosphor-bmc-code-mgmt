@@ -312,6 +312,7 @@ executable(
     'version.cpp',
     'utils.cpp',
     dependencies: [deps, ssl_dep],
+    include_directories: common_include,
     install: true,
 )
 
