@@ -20,6 +20,7 @@ add_project_arguments(
     '-DBOOST_ALL_NO_LIB',
     '-DBOOST_ASIO_DISABLE_THREADS',
     '-DBOOST_ASIO_NO_DEPRECATED',
+    '-Wno-deprecated-declarations',
     language: 'cpp',
 )
 

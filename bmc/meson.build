@@ -271,7 +271,7 @@ if get_option('software-update-dbus-interface').allowed()
         'software_manager.cpp',
         image_updater_sources,
         software_common_sources,
-        dependencies: [deps, ssl_dep],
+        dependencies: [deps, ssl_dep, boost_dep, cppfs],
         install: true,
         install_dir: get_option('libexecdir') / 'phosphor-code-mgmt',
     )
