@@ -122,6 +122,10 @@ class InventoryManager :
         // used to create a RF log upon reboot
         utils::execute("/sbin/fw_setenv", "openbmclog", "factory-reset");
 
+        // used to clear the host interface (host side) mac address in u-boot
+        // bootargs
+        utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
+
         // Need to wait for env variables to complete, otherwise an immediate
         // reboot will not factory reset.
         std::this_thread::sleep_for(setFactoryResetWait);
@@ -143,6 +147,10 @@ class InventoryManager :
 
         // used to create a RF log upon reboot
         utils::execute("/sbin/fw_setenv", "openbmclog", "logs-reset");
+
+        // used to clear the host interface (host side) mac address in u-boot
+        // bootargs
+        utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
 
         // Need to wait for env variables to complete, otherwise an immediate
         // reboot will not factory reset.
