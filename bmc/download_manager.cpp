@@ -145,7 +145,6 @@ bool isDownloadServiceRunning(const std::string& service)
     }
     catch (const sdbusplus::exception::exception& e)
     {
-        error("Error in GetUnit call: {ERROR}", "ERROR", e);
         return false;
     }
 
