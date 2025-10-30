@@ -124,7 +124,10 @@ class InventoryManager :
 
         // used to clear the host interface (host side) mac address in u-boot
         // bootargs
-        utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
+        if (fs::exists("/usr/bin/nvidia_clear_hostif_mac.sh"))
+        {
+            utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
+        }
 
         // Need to wait for env variables to complete, otherwise an immediate
         // reboot will not factory reset.
@@ -150,7 +153,10 @@ class InventoryManager :
 
         // used to clear the host interface (host side) mac address in u-boot
         // bootargs
-        utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
+        if (fs::exists("/usr/bin/nvidia_clear_hostif_mac.sh"))
+        {
+            utils::execute("/usr/bin/nvidia_clear_hostif_mac.sh");
+        }
 
         // Need to wait for env variables to complete, otherwise an immediate
         // reboot will not factory reset.
