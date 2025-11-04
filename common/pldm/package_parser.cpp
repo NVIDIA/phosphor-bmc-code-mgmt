@@ -56,7 +56,8 @@ size_t PackageParser::parseFDIdentificationArea(
         auto rc = decode_firmware_device_id_record(
             pkgHdr.data() + offset, pkgHdrRemainingSize,
             componentBitmapBitLength, &deviceIdRecHeader, &applicableComponents,
-            &compImageSetVersionStr, &recordDescriptors, &fwDevicePkgData);
+            &compImageSetVersionStr, &recordDescriptors, &fwDevicePkgData,
+            PLDM_PACKAGE_HEADER_FORMAT_REVISION_FR01H);
         if (rc)
         {
             error(
