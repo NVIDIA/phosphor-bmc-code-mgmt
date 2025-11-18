@@ -152,7 +152,15 @@ while true; do
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.BadCert"
         break
     fi
+    # Case 1: servers that send Content-Length (Most production-ready web servers)
     if grep -qi "Content-Length" "$logFile"; then
+        downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Started"
+        downloadStarted=true
+        break
+    fi
+    # Case 2: HTTP/1.0 / simple servers (e.g. openssl s_server -WWW) with no Content-Length
+    # Search for status line such as "< HTTP/1.0 200 ok"
+    if grep -qiE "< HTTP/[0-9.]+ 2[0-9][0-9]" "$logFile"; then
         downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Started"
         downloadStarted=true
         break
@@ -203,15 +211,23 @@ if [ "$downloadStarted" = true ]; then
             break
         fi
 
-        # Received connection final status. Check final progress.
-        if grep -qi "Closing connection" "$logFile" || grep -qi "left intact" "$logFile" || grep -qi "\"exitcode\"" "$logFile"; then
+        # Check for "exitcode" in the log.
+        # This guarantees curl has finished writing the JSON report.
+        if grep -qi "\"exitcode\"" "$logFile"; then
+            # Parse curl's exit code from the JSON line
+            exitcode=$(grep -o '"exitcode":[0-9]*' "$logFile" | tail -1 | cut -d: -f2)
+
             get_progress "$logFile"
             progress=$?
-            if [[ "$progress" -eq 100 ]]; then
-                echo "Connection final status and 100%"
+
+            # Ensure exitcode is not empty and equals 0
+            if [ -n "$exitcode" ] && [ "$exitcode" -eq 0 ]; then
+                echo "Curl exitcode=0 (success)"
                 downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Completed"
+                # If we never got a 100% progress line (common with s_server), force it now.
+                progress=100
             else
-                echo "Connection final status without 100%"
+                echo "Curl exitcode=$exitcode (failure)"
                 downloadStatus="xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Failed"
             fi
             update_dbus_properties "$sourceFile" "$destDir" "$downloadStatus" $progress
