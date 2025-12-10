@@ -17,11 +17,11 @@ int main()
     sd_event* loop = nullptr;
     sd_event_default(&loop);
 
-    sdbusplus::server::manager_t objManager(bus, SOFTWARE_OBJPATH);
-    bus.request_name(VERSION_BUSNAME);
-
     try
     {
+        sdbusplus::server::manager_t objManager(bus, SOFTWARE_OBJPATH);
+        bus.request_name(VERSION_BUSNAME);
+
         phosphor::software::manager::Manager imageManager(bus);
         phosphor::software::manager::Watch watch(
             loop, std::bind(std::mem_fn(&Manager::processImage), &imageManager,

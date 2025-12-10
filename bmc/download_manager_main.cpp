@@ -2,7 +2,10 @@
 
 #include "download_manager.hpp"
 
+#include <phosphor-logging/lg2.hpp>
 #include <sdbusplus/bus.hpp>
+
+#include <exception>
 
 int main()
 {
@@ -13,12 +16,27 @@ int main()
 
     phosphor::software::manager::Download manager(bus, SOFTWARE_OBJPATH);
 
-    bus.request_name(DOWNLOAD_BUSNAME);
+    try
+    {
+        bus.request_name(DOWNLOAD_BUSNAME);
+    }
+    catch (const sdbusplus::exception::SdBusError& e)
+    {
+        lg2::error("Error requesting bus name: {ERROR}", "ERROR", e);
+        return -1;
+    }
 
     while (true)
     {
-        bus.process_discard();
-        bus.wait();
+        try
+        {
+            bus.process_discard();
+            bus.wait();
+        }
+        catch (const sdbusplus::exception::SdBusError& e)
+        {
+            lg2::error("Error in bus process: {ERROR}", "ERROR", e);
+        }
     }
     return 0;
 }

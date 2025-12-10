@@ -46,13 +46,13 @@ int main()
         try
         {
             bus.process_discard();
+            bus.wait();
         }
         catch (const sdbusplus::exception::SdBusError& error)
         {
             log<level::ERR>("Error in bus process",
                             entry("ERROR=%s", error.what()));
         }
-        bus.wait();
     }
     return 0;
 }
