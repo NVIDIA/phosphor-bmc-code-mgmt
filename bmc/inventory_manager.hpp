@@ -3,9 +3,11 @@
 #include "version_inv_entry.hpp"
 
 #include <com/nvidia/Common/CompleteReset/server.hpp>
+#include <com/nvidia/Common/EmmcSecureErase/server.hpp>
 #include <phosphor-logging/elog.hpp>
 #include <sdbusplus/server.hpp>
 #include <xyz/openbmc_project/Common/FactoryReset/server.hpp>
+#include <xyz/openbmc_project/Common/error.hpp>
 #include <xyz/openbmc_project/Inventory/Decorator/Asset/server.hpp>
 #include <xyz/openbmc_project/Software/Settings/server.hpp>
 
@@ -31,10 +33,14 @@ using InventoryManagerInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Common::server::FactoryReset>;
 using OemCompleteResetInherit = sdbusplus::server::object::object<
     sdbusplus::com::nvidia::Common::server::CompleteReset>;
+using OemEmmcSecureEraseInherit = sdbusplus::server::object::object<
+    sdbusplus::com::nvidia::Common::server::EmmcSecureErase>;
 using SettingsInventoryEntryInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Software::server::Settings>;
 using ManufacturerInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Asset>;
+using InternalFailure =
+    sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
 
 /**
  * @brief Manages Inventory for BMC firmware versions. This publishes the BMC
@@ -45,6 +51,7 @@ using ManufacturerInherit = sdbusplus::server::object::object<
 class InventoryManager :
     public InventoryManagerInherit,
     OemCompleteResetInherit,
+    OemEmmcSecureEraseInherit,
 #ifdef IMPLEMENT_SETTINGS_INTERFACE
     SettingsInventoryEntryInherit,
 #endif
@@ -61,6 +68,9 @@ class InventoryManager :
                                 InventoryManagerInherit::action::defer_emit),
         OemCompleteResetInherit(bus, SOFTWARE_OBJPATH,
                                 OemCompleteResetInherit::action::defer_emit),
+        OemEmmcSecureEraseInherit(
+            bus, SOFTWARE_OBJPATH,
+            OemEmmcSecureEraseInherit::action::defer_emit),
 #ifdef IMPLEMENT_SETTINGS_INTERFACE
         SettingsInventoryEntryInherit(
             bus,
@@ -166,6 +176,23 @@ class InventoryManager :
         std::this_thread::sleep_for(setCompleteResetWait);
 
         log<level::INFO>("BMC complete reset will take effect upon reboot.");
+    }
+
+    /** @brief eMMC secure erase - sets u-boot env variable to trigger secure
+     *  erase of the eMMC storage device upon reboot. */
+    void emmcSecureErase() override
+    {
+        constexpr auto setEmmcSecureEraseWait = std::chrono::seconds(3);
+        auto [rc, output] =
+            utils::execute("/sbin/fw_setenv", "emmc_secure_erase", "yes");
+        if (rc != 0)
+        {
+            throw InternalFailure();
+        }
+
+        std::this_thread::sleep_for(setEmmcSecureEraseWait);
+
+        log<level::INFO>("eMMC secure erase will take effect upon reboot.");
     }
 
   private:
