@@ -176,7 +176,7 @@ auto Manager::processImage(sdbusplus::message::unix_fd image,
         Version::getRepeatedValues(manifestPath.string(), "CompatibleName");
 
     // Rename IMG_UPLOAD_DIR/imageXXXXXX to IMG_UPLOAD_DIR/id as Manifest
-    // parsing succedded.
+    // parsing succeeded.
     fs::path imageDirPath = std::string{IMG_UPLOAD_DIR};
     imageDirPath /= id;
     fs::rename(tmpDirPath, imageDirPath, ec);
@@ -207,7 +207,7 @@ auto Manager::processImage(sdbusplus::message::unix_fd image,
     co_return;
 }
 
-sdbusplus::message::object_path Manager::startUpdate(
+sdbusplus::object_path Manager::startUpdate(
     sdbusplus::message::unix_fd image,
     ApplyTimeIntf::RequestedApplyTimes applyTime, bool forceUpdate,
     std::vector<sdbusplus::message::object_path> targets)
@@ -221,7 +221,7 @@ sdbusplus::message::object_path Manager::startUpdate(
     {
         error("Failed to start as update is already in progress");
         report<Unavailable>();
-        return sdbusplus::message::object_path();
+        return sdbusplus::object_path();
     }
     updateInProgress = true;
 
@@ -234,7 +234,7 @@ sdbusplus::message::object_path Manager::startUpdate(
     int newFd = dup(image);
     ctx.spawn(processImage(newFd, applyTime, id, objPath));
 
-    return sdbusplus::message::object_path(objPath);
+    return sdbusplus::object_path(objPath);
 }
 
 } // namespace phosphor::software::update

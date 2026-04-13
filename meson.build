@@ -80,13 +80,17 @@ subdir('bmc')
 
 
 all_options = {
-    'bios-software-update': {'dirs' : ['bios'], 'deps': ['libgpiod']},
-    'cpld-software-update': {'dirs' : ['common/i2c', 'cpld']},
+    'bios-software-update': {'dirs': ['bios'], 'deps': ['libgpiod']},
+    'cpld-software-update': {
+        'dirs': ['common/i2c', 'cpld'],
+        'deps': ['libgpiod'],
+    },
     'eepromdevice-software-update': {
         'dirs': ['eeprom-device'],
         'deps': ['libgpiod'],
     },
-    'i2cvr-software-update': {'dirs' : ['common/i2c', 'i2c-vr']},
+    'i2cvr-software-update': {'dirs': ['common/i2c', 'i2c-vr']},
+    'tpm-software-update': {'dirs': ['tpm']},
 }
 
 optioned_subdirs = []
@@ -111,17 +115,17 @@ foreach option_name, option_settings : all_options
     endif
 endforeach
 
-if common_build or build_tests.allowed()
-    libpldm_dep = dependency('libpldm')
-    subdir('common')
-endif
-
 if optioned_deps.contains('libgpiod')
     libgpiod_dep = dependency(
         'libgpiodcxx',
         default_options: ['bindings=cxx'],
         version: '>=1.1.2',
     )
+endif
+
+if common_build or build_tests.allowed()
+    libpldm_dep = dependency('libpldm')
+    subdir('common')
 endif
 
 foreach dir : optioned_subdirs

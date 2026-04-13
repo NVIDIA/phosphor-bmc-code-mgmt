@@ -13,6 +13,15 @@ enum class VRType
 {
     XDPE1X2XX,
     ISL69269,
+    MP2X6XX,
+    MP292X,
+    MP297X,
+    MP5998,
+    MP994X,
+    MPQ87XX,
+    RAA22XGen2,
+    RAA22XGen3p5,
+    TDA38640A
 };
 
 class VoltageRegulator
@@ -35,10 +44,6 @@ class VoltageRegulator
     // @brief Applies update to the voltage regulator
     // @return sdbusplus::async::task<bool> true indicates success.
     virtual sdbusplus::async::task<bool> updateFirmware(bool force) = 0;
-
-    // @brief resets the voltage regulator for the update to take effect.
-    // @return sdbusplus::async::task<bool> true indicates success.
-    virtual sdbusplus::async::task<bool> reset() = 0;
 
     // @brief Requests the CRC value of the voltage regulator over I2C.
     // @param pointer to write the result to.

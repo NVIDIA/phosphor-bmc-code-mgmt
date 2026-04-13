@@ -440,8 +440,8 @@ bool Activation::checkApplyTimeImmediate()
         {
             auto reply = bus.call(method);
 
-            std::variant<std::string> result;
-            reply.read(result);
+            auto result = reply.unpack<std::variant<std::string>>();
+
             auto applyTime = std::get<std::string>(result);
             if (applyTime == applyTimeImmediate)
             {
@@ -477,7 +477,7 @@ void Activation::flashWriteHost()
 void Activation::onStateChangesBios(sdbusplus::message_t& msg)
 {
     uint32_t newStateID{};
-    sdbusplus::message::object_path newStateObjPath;
+    sdbusplus::object_path newStateObjPath;
     std::string newStateUnit{};
     std::string newStateResult{};
 

@@ -19,14 +19,15 @@ class XDPE1X2XX : public VoltageRegulator
                                              size_t imageSize) final;
 
     sdbusplus::async::task<bool> updateFirmware(bool force) final;
-    sdbusplus::async::task<bool> reset() final;
 
     sdbusplus::async::task<bool> getCRC(uint32_t* checksum) final;
     bool forcedUpdateAllowed() final;
 
   private:
     static const int MaxSectCnt = 16;
-    static const int MaxSectDataCnt = 200;
+    /*According to the XDPE192C3E datasheet, the Config User Section size has
+      reached 864 bytes, so MaxSectDataCnt requires at least 216.*/
+    static const int MaxSectDataCnt = 300;
 
     struct deviceInfo
     {

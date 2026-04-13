@@ -13,14 +13,21 @@ namespace phosphor::software::VR
 class ISL69269 : public VoltageRegulator
 {
   public:
-    ISL69269(sdbusplus::async::context& ctx, uint16_t bus, uint16_t address);
+    enum class Gen
+    {
+        Gen2,
+        Gen3,
+        Gen3p5
+    };
+
+    ISL69269(sdbusplus::async::context& ctx, uint16_t bus, uint16_t address,
+             Gen gen = Gen::Gen3);
 
     sdbusplus::async::task<bool> verifyImage(const uint8_t* image,
                                              size_t imageSize) final;
 
     sdbusplus::async::task<bool> updateFirmware(bool force) final;
     sdbusplus::async::task<bool> getCRC(uint32_t* checksum) final;
-    sdbusplus::async::task<bool> reset() final;
 
     bool forcedUpdateAllowed() final;
 
@@ -58,6 +65,7 @@ class ISL69269 : public VoltageRegulator
     bool checkImage();
 
     phosphor::i2c::I2C i2cInterface;
+    Gen generation;
     uint8_t mode;
 
     struct Configuration configuration;

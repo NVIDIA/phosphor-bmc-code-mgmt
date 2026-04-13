@@ -21,6 +21,7 @@ enum RevisionCode
     REV_B,
     REV_C,
     REV_D,
+    REV_E,
 };
 
 enum ProductID
@@ -29,8 +30,11 @@ enum ProductID
     ProductIDXDPE15284 = 0x8A,   // Revision A,B,C,D
     ProductIDXDPE19283AC = 0x95, // Revision A,B,C
     ProductIDXDPE19283D = 0xAE,  // Revision D
+    ProductIDXDPE19284 = 0x98,   // Revision A,B,C,D,E
     ProductIDXDPE192C3AC = 0x96, // Revision A,B,C
     ProductIDXDPE192C3D = 0xAF,  // Revision D
+    ProductIDXDPE192C3E = 0xB8,  // Revision E
+    ProductIDXDPE1D2G3B = 0xA5,  // Revision B
 };
 
 constexpr uint8_t PMBusICDeviceID = 0xAD;
@@ -40,7 +44,6 @@ constexpr uint8_t IFXMFRAHBAddr = 0xCE;
 constexpr uint8_t IFXMFRRegWrite = 0xDE;
 constexpr uint8_t IFXMFRFwCmdData = 0xFD;
 constexpr uint8_t IFXMFRFwCmd = 0xFE;
-constexpr uint8_t MFRFwCmdReset = 0x0e;
 constexpr uint8_t MFRFwCmdRmng = 0x10;
 constexpr uint8_t MFRFwCmdGetHWAddress = 0x2E;
 constexpr uint8_t MFRFwCmdOTPConfSTO = 0x11;
@@ -49,6 +52,9 @@ constexpr uint8_t MFRFwCmdGetCRC = 0x2D;
 constexpr int XDPE152XXConfSize = 1344;
 constexpr int XDPE152XXDConfSize = 1312;
 constexpr int XDPE192XXBConfSize = 1416; // Config(728) + PMBus(568) + SVID(120)
+constexpr int XDPE192XXCConfSize = 1504; // Config(816) + PMBus(568) + SVID(120)
+constexpr int XDPE192C3EConfSize = 1532; // Config(844) + PMBus(568) + SVID(120)
+constexpr int XDPE1D2G3BConfSize = 1552; // Config(864) + PMBus(568) + SVID(120)
 constexpr uint8_t VRWarnRemaining = 3;
 constexpr uint8_t SectTrim = 0x02;
 
@@ -56,7 +62,6 @@ constexpr uint16_t MFRDefaultWaitTime = 20;
 constexpr uint16_t MFRGetHWAddressWaitTime = 5;
 constexpr uint16_t MFROTPFileInvalidationWaitTime = 100;
 constexpr uint16_t MFRSectionInvalidationWaitTime = 4;
-constexpr uint16_t VRResetDelay = 500;
 
 constexpr uint32_t CRC32Poly = 0xEDB88320;
 
@@ -204,6 +209,9 @@ int XDPE1X2XX::getConfigSize(uint8_t deviceId, uint8_t revision)
         {{ProductIDXDPE15284, REV_C}, XDPE152XXConfSize},
         {{ProductIDXDPE15284, REV_D}, XDPE152XXDConfSize},
         {{ProductIDXDPE192C3AC, REV_B}, XDPE192XXBConfSize},
+        {{ProductIDXDPE192C3E, REV_E}, XDPE192C3EConfSize},
+        {{ProductIDXDPE19284, REV_C}, XDPE192XXCConfSize},
+        {{ProductIDXDPE1D2G3B, REV_B}, XDPE1D2G3BConfSize},
     };
 
     auto it = configSizeMap.find({deviceId, revision});
@@ -266,7 +274,7 @@ sdbusplus::async::task<bool> XDPE1X2XX::program(bool force)
     if (!(co_await this->getRemainingWrites(&remain)))
     // NOLINTEND(clang-analyzer-core.uninitialized.Branch)
     {
-        error("Failed to program the VR - unable to obtain remaing writes");
+        error("Failed to program the VR - unable to obtain remaining writes");
         co_return -1;
     }
 
@@ -483,7 +491,19 @@ bool XDPE1X2XX::parseImage(const uint8_t* image, size_t image_size)
     {
         if (image[i] == '\n')
         {
-            std::memcpy(line, image + start, i - start);
+            size_t lineLength = i - start;
+            if (i > start && image[i - 1] == '\r')
+            {
+                lineLength--;
+            }
+            if (lineLength >= maxLineLength)
+            {
+                error("line length >= 40, please check image file.");
+                return false;
+            }
+            std::memcpy(line, image + start, lineLength);
+            line[lineLength] = '\0';
+
             if (!strncmp(line, DataComment, lenComment))
             {
                 token = line + lenComment;
@@ -514,6 +534,7 @@ bool XDPE1X2XX::parseImage(const uint8_t* image, size_t image_size)
                 offset = (uint16_t)strtol(tokenList[0], NULL, 16);
                 if (sectType == SectTrim && offset != 0x0)
                 {
+                    start = i + 1;
                     continue;
                 }
 
@@ -707,7 +728,7 @@ sdbusplus::async::task<bool> XDPE1X2XX::updateFirmware(bool force)
     {
         configuration.section[i].type = 0;
         configuration.section[i].dataCnt = 0;
-        for (int j = 0; j <= MaxSectDataCnt; j++)
+        for (int j = 0; j < MaxSectDataCnt; j++)
         {
             configuration.section[i].data[j] = 0;
         }
@@ -715,17 +736,6 @@ sdbusplus::async::task<bool> XDPE1X2XX::updateFirmware(bool force)
 
     if (!ret)
     {
-        co_return false;
-    }
-
-    co_return true;
-}
-
-sdbusplus::async::task<bool> XDPE1X2XX::reset()
-{
-    if (!(co_await mfrFWcmd(MFRFwCmdReset, VRResetDelay, NULL, NULL)))
-    {
-        error("Failed to reset the VR");
         co_return false;
     }
 

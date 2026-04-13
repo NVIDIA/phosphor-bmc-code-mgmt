@@ -178,7 +178,7 @@ void USBManager::updateActivation(sdbusplus::message_t& msg)
 {
     std::map<std::string, std::map<std::string, std::variant<std::string>>>
         interfaces;
-    sdbusplus::message::object_path path;
+    sdbusplus::object_path path;
     msg.read(path, interfaces);
 
     constexpr auto imageInterface = "xyz.openbmc_project.Software.Activation";

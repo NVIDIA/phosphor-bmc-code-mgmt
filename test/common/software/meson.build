@@ -1,5 +1,12 @@
 
-testcases = ['software_get_random_softwareid', 'software_config']
+testcases = [
+    'software_get_random_softwareid',
+    'software_config',
+    'software_association',
+    'software_update',
+    'software_version',
+    'software',
+]
 
 foreach t : testcases
     test(
@@ -16,7 +23,7 @@ foreach t : testcases
             ],
             link_with: [
                 libpldmutil,
-                # libpldmcreatepkg,   # libpldm haven't support pldm_edac_crc32
+                libpldmcreatepkg,
                 software_common_lib,
                 libexampledevice,
             ],

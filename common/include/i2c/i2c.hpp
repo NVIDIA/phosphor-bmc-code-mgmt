@@ -49,7 +49,7 @@ class I2C
         return (fd != invalidFd);
     }
 
-    int close() const;
+    void close();
 
   private:
     static constexpr int invalidFd = -1;

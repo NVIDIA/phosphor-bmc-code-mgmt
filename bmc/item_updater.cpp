@@ -44,7 +44,7 @@ void ItemUpdater::createActivation(sdbusplus::message_t& msg)
     using SVersion = server::Version;
     using VersionPurpose = SVersion::VersionPurpose;
 
-    sdbusplus::message::object_path objPath;
+    sdbusplus::object_path objPath;
     auto purpose = VersionPurpose::Unknown;
     std::string extendedVersion;
     std::string version;
@@ -561,6 +561,15 @@ void ItemUpdater::erase(std::string entryId)
             removePersistDataDirectory(flashId);
             helper.clearEntry(flashId);
         }
+        else if (useUpdateDBusInterface)
+        {
+            fs::path imageDirPath = flashId;
+            if (fs::exists(imageDirPath))
+            {
+                info("Erasing image temporary folder {ID}", "ID", flashId);
+                fs::remove_all(imageDirPath);
+            }
+        }
 
         // Removing entry in versions map
         this->versions.erase(entryId);
@@ -778,8 +787,7 @@ void ItemUpdater::setBMCInventoryPath()
         auto response = bus.call(mapperCall);
 
         using ObjectPaths = std::vector<std::string>;
-        ObjectPaths result;
-        response.read(result);
+        auto result = response.unpack<ObjectPaths>();
 
         if (!result.empty())
         {

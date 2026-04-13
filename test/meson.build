@@ -1,4 +1,4 @@
-# subdir('create_package')  # libpldm haven't support pldm_edac_crc32
+subdir('create_package')
 
 gtest_main = dependency('gtest_main', main: true, required: true)
 

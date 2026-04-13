@@ -20,8 +20,11 @@ namespace SoftwareInf = phosphor::software;
 namespace ManagerInf = phosphor::software::manager;
 
 const std::string configDBusName = "I2CVR";
-const std::vector<std::string> emConfigTypes = {"XDPE1X2XXFirmware",
-                                                "ISL69269Firmware"};
+const std::vector<std::string> emConfigTypes = {
+    "XDPE1X2XXFirmware",    "ISL69269Firmware", "MP2X6XXFirmware",
+    "MP292XFirmware",       "MP297XFirmware",   "MP5998Firmware",
+    "MPQ87XXFirmware",      "MP994XFirmware",   "RAA22XGen2Firmware",
+    "RAA22XGen3p5Firmware", "TDA38640AFirmware"};
 
 I2CVRSoftwareManager::I2CVRSoftwareManager(sdbusplus::async::context& ctx) :
     ManagerInf::SoftwareManager(ctx, configDBusName)
@@ -88,12 +91,10 @@ sdbusplus::async::task<bool> I2CVRSoftwareManager::initDevice(
         co_return false;
     }
 
-    software->setVersion(std::format("{:X}", sum));
+    software->setVersion(std::format("{:X}", sum),
+                         SoftwareInf::SoftwareVersion::VersionPurpose::Other);
 
-    std::set<RequestedApplyTimes> allowedApplyTime = {
-        RequestedApplyTimes::Immediate, RequestedApplyTimes::OnReset};
-
-    software->enableUpdate(allowedApplyTime);
+    software->enableUpdate({RequestedApplyTimes::OnReset});
 
     i2cDevice->softwareCurrent = std::move(software);
 

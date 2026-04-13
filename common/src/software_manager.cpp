@@ -31,16 +31,13 @@ SoftwareManager::SoftwareManager(sdbusplus::async::context& ctx,
     ctx(ctx),
     configIntfAddedMatch(ctx, RulesIntf::interfacesAdded() + matchRuleSender),
     configIntfRemovedMatch(ctx, RulesIntf::interfacesRemoved() + matchRulePath),
-    serviceNameSuffix(serviceNameSuffix),
+    serviceName("xyz.openbmc_project.Software." + serviceNameSuffix),
     manager(ctx, sdbusplus::client::xyz::openbmc_project::software::Version<>::
                      namespace_path)
 {
-    const std::string serviceNameFull =
-        "xyz.openbmc_project.Software." + serviceNameSuffix;
+    debug("requesting dbus name {BUSNAME}", "BUSNAME", serviceName);
 
-    debug("requesting dbus name {BUSNAME}", "BUSNAME", serviceNameFull);
-
-    ctx.request_name(serviceNameFull.c_str());
+    ctx.request_name(serviceName.c_str());
 
     debug("Initialized SoftwareManager");
 }
@@ -148,6 +145,11 @@ sdbusplus::async::task<> SoftwareManager::initDevices(
     debug("Done with initial configuration");
 }
 
+std::string SoftwareManager::getBusName()
+{
+    return serviceName;
+}
+
 sdbusplus::async::task<void> SoftwareManager::handleInterfaceAdded(
     const std::string& service, const std::string& path,
     const std::string& interface)
@@ -203,7 +205,7 @@ sdbusplus::async::task<void> SoftwareManager::interfaceAddedMatch(
     {
         std::tuple<std::string, ConfigMap> nextResult("", {});
         nextResult = co_await configIntfAddedMatch
-                         .next<sdbusplus::message::object_path, ConfigMap>();
+                         .next<sdbusplus::object_path, ConfigMap>();
 
         auto& [objPath, interfacesMap] = nextResult;
 
@@ -226,8 +228,9 @@ sdbusplus::async::task<void> SoftwareManager::interfaceRemovedMatch(
 {
     while (!ctx.stop_requested())
     {
-        auto nextResult = co_await configIntfRemovedMatch.next<
-            sdbusplus::message::object_path, std::vector<std::string>>();
+        auto nextResult =
+            co_await configIntfRemovedMatch
+                .next<sdbusplus::object_path, std::vector<std::string>>();
 
         auto& [objPath, interfacesRemoved] = nextResult;
 
@@ -247,7 +250,7 @@ sdbusplus::async::task<void> SoftwareManager::interfaceRemovedMatch(
 }
 
 sdbusplus::async::task<void> SoftwareManager::handleInterfaceRemoved(
-    const sdbusplus::message::object_path& objPath)
+    const sdbusplus::object_path& objPath)
 {
     if (!devices.contains(objPath))
     {

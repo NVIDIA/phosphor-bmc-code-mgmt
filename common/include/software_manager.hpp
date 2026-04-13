@@ -34,7 +34,7 @@ class SoftwareManager
         const std::vector<std::string>& configurationInterfaces);
 
     // Map of EM config object path to device.
-    std::map<sdbusplus::message::object_path, std::unique_ptr<Device>> devices;
+    std::map<sdbusplus::object_path, std::unique_ptr<Device>> devices;
 
   protected:
     // This function receives a dbus name and object path for a single device,
@@ -51,6 +51,8 @@ class SoftwareManager
                                                     const std::string& path,
                                                     SoftwareConfig& config) = 0;
 
+    std::string getBusName();
+
     sdbusplus::async::context& ctx;
 
   private:
@@ -59,7 +61,7 @@ class SoftwareManager
         const std::string& interface);
 
     sdbusplus::async::task<void> handleInterfaceRemoved(
-        const sdbusplus::message::object_path& path);
+        const sdbusplus::object_path& path);
 
     sdbusplus::async::task<void> interfaceAddedMatch(
         std::vector<std::string> interfaces);
@@ -70,8 +72,8 @@ class SoftwareManager
     sdbusplus::async::match configIntfAddedMatch;
     sdbusplus::async::match configIntfRemovedMatch;
 
-    // this is appended to the common prefix to construct the dbus name
-    std::string serviceNameSuffix;
+    // the dbus name
+    const std::string serviceName;
 
     sdbusplus::server::manager_t manager;
 
