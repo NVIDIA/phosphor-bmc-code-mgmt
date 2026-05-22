@@ -11,11 +11,19 @@ gpiodcxx = dependency(
 libgpiodcxx = dependency('libgpiodcxx')
 sdeventplus = dependency('sdeventplus')
 
-nvidia_secure_monitor_sources = files('../openssl_alloc.cpp'
-, 'i2c.cpp', 'i2c_comm_lib.cpp', 'secure_monitor.cpp')
+nvidia_secure_monitor_sources = files(
+    '../openssl_alloc.cpp',
+    'i2c.cpp',
+    'i2c_comm_lib.cpp',
+    'secure_monitor.cpp',
+)
 
-nvidia_boot_complete_sources = files('../openssl_alloc.cpp'
-, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_boot_complete.cpp')
+nvidia_boot_complete_sources = files(
+    '../openssl_alloc.cpp',
+    'i2c.cpp',
+    'i2c_comm_lib.cpp',
+    'nvidia_boot_complete.cpp',
+)
 
 nvidia_fw_updater_sources = files(
     '../openssl_alloc.cpp',
@@ -30,11 +38,19 @@ nvidia_fw_updater_sources = files(
     'state_machine_context.cpp',
 )
 
-nvidia_secure_copier_sources = files('../openssl_alloc.cpp'
-, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_copy_image.cpp')
+nvidia_secure_copier_sources = files(
+    '../openssl_alloc.cpp',
+    'i2c.cpp',
+    'i2c_comm_lib.cpp',
+    'nvidia_copy_image.cpp',
+)
 
-nvidia_fw_tool_sources = files('../openssl_alloc.cpp'
-, 'i2c.cpp', 'i2c_comm_lib.cpp', 'nvidia_fw_services.cpp')
+nvidia_fw_tool_sources = files(
+    '../openssl_alloc.cpp',
+    'i2c.cpp',
+    'i2c_comm_lib.cpp',
+    'nvidia_fw_services.cpp',
+)
 
 executable(
     'nvidia-secure-monitor',
