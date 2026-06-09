@@ -38,12 +38,15 @@ SoftwareUpdate::~SoftwareUpdate()
 }
 
 auto SoftwareUpdate::method_call(start_update_t /*unused*/, auto image,
-                                 auto applyTime, auto forceUpdate, auto targets)
+                                 auto applyTime, auto forceUpdate, auto targets,
+                                 auto preUpdateValidation)
     -> sdbusplus::async::task<start_update_t::return_type>
 {
     debug(
-        "Requesting Image update with {FD}, forceUpdate: {FORCE}, targets count: {COUNT}",
-        "FD", image.fd, "FORCE", forceUpdate, "COUNT", targets.size());
+        "Requesting Image update with {FD}, forceUpdate: {FORCE}, "
+        "preUpdateValidation: {VALIDATE}, targets count: {COUNT}",
+        "FD", image.fd, "FORCE", forceUpdate, "VALIDATE", preUpdateValidation,
+        "COUNT", targets.size());
 
     Device& device = software.parentDevice;
 

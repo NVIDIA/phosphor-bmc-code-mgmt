@@ -210,12 +210,14 @@ auto Manager::processImage(sdbusplus::message::unix_fd image,
 sdbusplus::message::object_path Manager::startUpdate(
     sdbusplus::message::unix_fd image,
     ApplyTimeIntf::RequestedApplyTimes applyTime, bool forceUpdate,
-    std::vector<sdbusplus::message::object_path> targets)
+    std::vector<sdbusplus::message::object_path> targets,
+    bool preUpdateValidation)
 {
     info(
-        "Starting update for image {FD}, forceUpdate: {FORCE}, targets count: {COUNT}",
-        "FD", static_cast<int>(image), "FORCE", forceUpdate, "COUNT",
-        targets.size());
+        "Starting update for image {FD}, forceUpdate: {FORCE}, "
+        "preUpdateValidation: {VALIDATE}, targets count: {COUNT}",
+        "FD", static_cast<int>(image), "FORCE", forceUpdate, "VALIDATE",
+        preUpdateValidation, "COUNT", targets.size());
     using sdbusplus::xyz::openbmc_project::Common::Error::Unavailable;
     if (updateInProgress)
     {

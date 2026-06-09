@@ -94,9 +94,11 @@ auto USBManager::startUpdate(int fd) -> sdbusplus::async::task<bool>
     }
 
     auto updater = Updater(ctx).service(serviceName).path(paths[0]);
+    // PreUpdateValidation is false: this applies a single BMC image from USB,
+    // so there is no device scope to validate before the transfer.
     sdbusplus::message::object_path objectPath = co_await updater.start_update(
         fd, ApplyTimeIntf::RequestedApplyTimes::OnReset, false,
-        std::vector<sdbusplus::message::object_path>{});
+        std::vector<sdbusplus::message::object_path>{}, false);
     if (objectPath.str.empty())
     {
         lg2::error("StartUpdate failed");

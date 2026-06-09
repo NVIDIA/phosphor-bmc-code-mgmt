@@ -30,7 +30,7 @@ class SoftwareUpdate :
     ~SoftwareUpdate();
 
     auto method_call(start_update_t su, auto image, auto applyTime,
-                     auto forceUpdate, auto targets)
+                     auto forceUpdate, auto targets, auto preUpdateValidation)
         -> sdbusplus::async::task<start_update_t::return_type>;
 
     auto get_property(allowed_apply_times_t aat) const;
