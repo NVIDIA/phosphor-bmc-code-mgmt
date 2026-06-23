@@ -134,7 +134,7 @@ bool copyAndRemoveCECImage(const std::string& tarFilePath)
 
 void resetTargetObjectPaths(sdbusplus::bus_t& bus)
 {
-    std::vector<sdbusplus::message::object_path> objectPaths = {};
+    std::vector<sdbusplus::object_path> objectPaths = {};
     utils::setProperty(bus, "/xyz/openbmc_project/software",
                        "xyz.openbmc_project.Software.UpdatePolicy", "Targets",
                        objectPaths);
@@ -154,10 +154,9 @@ int Manager::processImage(const std::string& tarFilePath)
     }
 
 #ifdef NVIDIA_SECURE_BOOT
-    auto objectPaths =
-        utils::getProperty<std::vector<sdbusplus::message::object_path>>(
-            bus, "/xyz/openbmc_project/software",
-            "xyz.openbmc_project.Software.UpdatePolicy", "Targets");
+    auto objectPaths = utils::getProperty<std::vector<sdbusplus::object_path>>(
+        bus, "/xyz/openbmc_project/software",
+        "xyz.openbmc_project.Software.UpdatePolicy", "Targets");
     std::string target = "";
 
     if (!objectPaths.empty())

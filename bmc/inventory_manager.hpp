@@ -63,7 +63,7 @@ class InventoryManager :
      *
      * @param[in/out] bus dbus service
      */
-    InventoryManager(sdbusplus::bus::bus& bus) :
+    InventoryManager(sdbusplus::bus_t& bus) :
         InventoryManagerInherit(bus, BMC_FACTORY_RESET_OBJPATH,
                                 InventoryManagerInherit::action::defer_emit),
         OemCompleteResetInherit(bus, SOFTWARE_OBJPATH,
@@ -198,7 +198,7 @@ class InventoryManager :
   private:
     std::unique_ptr<VersionInventoryEntry> versionPtr;
 
-    sdbusplus::bus::bus& bus;
+    sdbusplus::bus_t& bus;
 };
 
 } // namespace manager

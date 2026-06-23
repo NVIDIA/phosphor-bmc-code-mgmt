@@ -11,7 +11,7 @@ namespace utils
 {
 
 using PropertyValue =
-    std::variant<std::string, std::vector<sdbusplus::message::object_path>>;
+    std::variant<std::string, std::vector<sdbusplus::object_path>>;
 
 /**
  * @brief Get the bus service

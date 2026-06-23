@@ -416,7 +416,7 @@ void PrisStateMachine::StateSendCopyComplete(
         if (!activeCecInterruptSignal)
         {
             activeCecInterruptSignal =
-                std::make_unique<sdbusplus::bus::match::match>(
+                std::make_unique<sdbusplus::bus::match_t>(
                     myMachineContext.activationObject->bus,
                     match_rules::propertiesChanged("/com/nvidia/secureboot",
                                                    "com.nvidia.Secureboot.Cec"),

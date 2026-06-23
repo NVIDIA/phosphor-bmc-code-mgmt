@@ -48,9 +48,9 @@ sdbusplus::async::task<> testSoftwareUpdateCommon(
             .service(busName)
             .path(objPathCurrentSoftware);
 
-    sdbusplus::object_path objPathNewSoftware = co_await client.start_update(
-        fd, RequestedApplyTimes::Immediate, false,
-        std::vector<sdbusplus::message::object_path>{});
+    sdbusplus::object_path objPathNewSoftware =
+        co_await client.start_update(fd, RequestedApplyTimes::Immediate, false,
+                                     std::vector<sdbusplus::object_path>{});
     EXPECT_NE(objPathNewSoftware, objPathCurrentSoftware);
 
     auto clientNewVersion =

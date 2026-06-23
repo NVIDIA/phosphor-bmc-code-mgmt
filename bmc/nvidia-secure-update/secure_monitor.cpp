@@ -68,7 +68,7 @@ static bool enabledGuard{false};
 // in milliseconds
 constexpr uint8_t sleepInSeconds{100};
 
-sdbusplus::bus::bus bus = sdbusplus::bus::new_default();
+sdbusplus::bus_t bus = sdbusplus::bus::new_default();
 
 using InternalFailure =
     sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
@@ -89,8 +89,7 @@ using PropertyMap = std::map<DbusProperty, Value>;
 
 using DbusInterfaceMap = std::map<DbusInterface, PropertyMap>;
 
-using ObjectValueTree =
-    std::map<sdbusplus::message::object_path, DbusInterfaceMap>;
+using ObjectValueTree = std::map<sdbusplus::object_path, DbusInterfaceMap>;
 
 using Activation =
     sdbusplus::xyz::openbmc_project::Software::server::Activation;
@@ -102,7 +101,7 @@ void ApplyRebootGuard();
 class CecImpl : public CecInherit
 {
   public:
-    CecImpl(sdbusplus::bus::bus& bus, const std::string& objPath) :
+    CecImpl(sdbusplus::bus_t& bus, const std::string& objPath) :
         CecInherit(bus, (objPath).c_str()) {};
 
     bool getStatus()

@@ -26,15 +26,14 @@ using PropertyMap = std::map<DbusProperty, Value>;
 
 using DbusInterfaceMap = std::map<DbusInterface, PropertyMap>;
 
-using ObjectValueTree =
-    std::map<sdbusplus::message::object_path, DbusInterfaceMap>;
+using ObjectValueTree = std::map<sdbusplus::object_path, DbusInterfaceMap>;
 
 class UpdateManager;
 
 class UpdateManager
 {
   public:
-    UpdateManager(sdbusplus::bus::bus& bus) :
+    UpdateManager(sdbusplus::bus_t& bus) :
         bus(bus),
         systemdSignals(
             bus,
@@ -81,7 +80,7 @@ class UpdateManager
 
     std::unique_ptr<sdbusplus::Timer> secureUpdateTimer;
 
-    sdbusplus::bus::bus& bus;
+    sdbusplus::bus_t& bus;
 
   private:
     /** @brief Used to subscribe to dbus systemd signals **/

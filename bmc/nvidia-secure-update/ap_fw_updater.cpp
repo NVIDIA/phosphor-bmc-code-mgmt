@@ -408,7 +408,7 @@ void UpdateManager::unitStateChange(sdbusplus::message::message& msg)
     }
 
     uint32_t newStateID{};
-    sdbusplus::message::object_path newStateObjPath;
+    sdbusplus::object_path newStateObjPath;
     std::string newStateUnit{};
     std::string newStateResult{};
     uint8_t progress{50};

@@ -33,8 +33,7 @@ class ApFwActivationProgress : public ActivationProgressIntf
      * @param[in] bus - Bus to attach to
      * @param[in] objPath - D-Bus object path
      */
-    ApFwActivationProgress(sdbusplus::bus::bus& bus,
-                           const std::string& objPath) :
+    ApFwActivationProgress(sdbusplus::bus_t& bus, const std::string& objPath) :
         ActivationProgressIntf(bus, objPath.c_str(),
                                action::emit_interface_added)
     {
@@ -63,7 +62,7 @@ class ApFwActivation : public ActivationIntf
      *  @param[in] requestedActivationState - Requested activation state
      *  @param[in] updateManager - Reference to FW update manager
      */
-    ApFwActivation(sdbusplus::bus::bus& bus, std::string objPath,
+    ApFwActivation(sdbusplus::bus_t& bus, std::string objPath,
                    Activations activationState,
                    RequestedActivations requestedActivationState,
                    UpdateManager* updateManager) :
@@ -97,7 +96,7 @@ class ApFwActivation : public ActivationIntf
     }
 
   private:
-    sdbusplus::bus::bus& bus;
+    sdbusplus::bus_t& bus;
     const std::string objPath;
     UpdateManager* updateManager;
 };

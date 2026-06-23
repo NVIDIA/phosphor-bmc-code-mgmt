@@ -51,7 +51,7 @@ class Manager : public UpdateIntf
     sdbusplus::object_path startUpdate(
         sdbusplus::message::unix_fd image,
         ApplyTimeIntf::RequestedApplyTimes applyTime, bool forceUpdate,
-        std::vector<sdbusplus::message::object_path> targets) override;
+        std::vector<sdbusplus::object_path> targets) override;
 
     /* @brief Process the image supplied via image fd */
     auto processImage(sdbusplus::message::unix_fd image,

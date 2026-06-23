@@ -29,7 +29,7 @@ PHOSPHOR_LOG2_USING;
 using namespace phosphor::logging;
 namespace fs = std::filesystem;
 
-sdbusplus::bus::bus bus = sdbusplus::bus::new_default();
+sdbusplus::bus_t bus = sdbusplus::bus::new_default();
 
 constexpr auto scpArgsFile = "/tmp/scp.args";
 constexpr auto scpTransferService = "scp-transfer.service";
@@ -132,7 +132,7 @@ void Download::downloadViaTFTP(std::string fileName, std::string serverAddress)
 bool isDownloadServiceRunning(const std::string& service)
 {
     std::variant<std::string> currentState;
-    sdbusplus::message::object_path unitTargetPath;
+    sdbusplus::object_path unitTargetPath;
 
     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
                                       SYSTEMD_INTERFACE, "GetUnit");

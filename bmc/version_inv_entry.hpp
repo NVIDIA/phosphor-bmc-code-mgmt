@@ -41,7 +41,7 @@ class VersionInventoryEntry : public VersionInventoryEntryInherit
      * @param objPath dbus path for the created object
      * @param versionString string representation of the version
      */
-    VersionInventoryEntry(sdbusplus::bus::bus& bus, const std::string& objPath,
+    VersionInventoryEntry(sdbusplus::bus_t& bus, const std::string& objPath,
                           const std::string& versionString) :
         VersionInventoryEntryInherit(
             bus, (objPath).c_str(),

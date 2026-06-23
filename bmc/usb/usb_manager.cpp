@@ -94,9 +94,9 @@ auto USBManager::startUpdate(int fd) -> sdbusplus::async::task<bool>
     }
 
     auto updater = Updater(ctx).service(serviceName).path(paths[0]);
-    sdbusplus::message::object_path objectPath = co_await updater.start_update(
+    sdbusplus::object_path objectPath = co_await updater.start_update(
         fd, ApplyTimeIntf::RequestedApplyTimes::OnReset, false,
-        std::vector<sdbusplus::message::object_path>{});
+        std::vector<sdbusplus::object_path>{});
     if (objectPath.str.empty())
     {
         lg2::error("StartUpdate failed");

@@ -210,7 +210,7 @@ auto Manager::processImage(sdbusplus::message::unix_fd image,
 sdbusplus::object_path Manager::startUpdate(
     sdbusplus::message::unix_fd image,
     ApplyTimeIntf::RequestedApplyTimes applyTime, bool forceUpdate,
-    std::vector<sdbusplus::message::object_path> targets)
+    std::vector<sdbusplus::object_path> targets)
 {
     info(
         "Starting update for image {FD}, forceUpdate: {FORCE}, targets count: {COUNT}",
