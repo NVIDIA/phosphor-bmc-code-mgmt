@@ -3,7 +3,9 @@
 #include "version_inv_entry.hpp"
 
 #include <com/nvidia/Common/CompleteReset/server.hpp>
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
 #include <com/nvidia/Common/EmmcSecureErase/server.hpp>
+#endif
 #include <phosphor-logging/elog.hpp>
 #include <sdbusplus/server.hpp>
 #include <xyz/openbmc_project/Common/FactoryReset/server.hpp>
@@ -33,14 +35,18 @@ using InventoryManagerInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Common::server::FactoryReset>;
 using OemCompleteResetInherit = sdbusplus::server::object::object<
     sdbusplus::com::nvidia::Common::server::CompleteReset>;
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
 using OemEmmcSecureEraseInherit = sdbusplus::server::object::object<
     sdbusplus::com::nvidia::Common::server::EmmcSecureErase>;
+#endif
 using SettingsInventoryEntryInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Software::server::Settings>;
 using ManufacturerInherit = sdbusplus::server::object::object<
     sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Asset>;
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
 using InternalFailure =
     sdbusplus::xyz::openbmc_project::Common::Error::InternalFailure;
+#endif
 
 /**
  * @brief Manages Inventory for BMC firmware versions. This publishes the BMC
@@ -51,7 +57,9 @@ using InternalFailure =
 class InventoryManager :
     public InventoryManagerInherit,
     OemCompleteResetInherit,
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
     OemEmmcSecureEraseInherit,
+#endif
 #ifdef IMPLEMENT_SETTINGS_INTERFACE
     SettingsInventoryEntryInherit,
 #endif
@@ -68,9 +76,11 @@ class InventoryManager :
                                 InventoryManagerInherit::action::defer_emit),
         OemCompleteResetInherit(bus, SOFTWARE_OBJPATH,
                                 OemCompleteResetInherit::action::defer_emit),
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
         OemEmmcSecureEraseInherit(
             bus, SOFTWARE_OBJPATH,
             OemEmmcSecureEraseInherit::action::defer_emit),
+#endif
 #ifdef IMPLEMENT_SETTINGS_INTERFACE
         SettingsInventoryEntryInherit(
             bus,
@@ -178,6 +188,7 @@ class InventoryManager :
         log<level::INFO>("BMC complete reset will take effect upon reboot.");
     }
 
+#ifdef OEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED
     /** @brief eMMC secure erase - sets u-boot env variable to trigger secure
      *  erase of the eMMC storage device upon reboot. */
     void emmcSecureErase() override
@@ -194,6 +205,7 @@ class InventoryManager :
 
         log<level::INFO>("eMMC secure erase will take effect upon reboot.");
     }
+#endif
 
   private:
     std::unique_ptr<VersionInventoryEntry> versionPtr;

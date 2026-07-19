@@ -106,6 +106,13 @@ option(
 )
 
 option(
+    'oem-nvidia-emmc-secure-erase',
+    type: 'feature',
+    value: 'enabled',
+    description: 'Expose OEM NVIDIA eMMC secure erase interface',
+)
+
+option(
     'bios-software-update',
     type: 'feature',
     value: 'enabled',
