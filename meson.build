@@ -29,6 +29,13 @@ if get_option('oem-nvidia-hmc-emmc').enabled()
     add_project_arguments('-DOEM_NVIDIA_HMC_EMMC_ENABLED', language: 'cpp')
 endif
 
+if get_option('oem-nvidia-emmc-secure-erase').enabled()
+    add_project_arguments(
+        '-DOEM_NVIDIA_EMMC_SECURE_ERASE_ENABLED',
+        language: 'cpp',
+    )
+endif
+
 cpp = meson.get_compiler('cpp')
 cppfs = meson.get_compiler('cpp').find_library('stdc++fs')
 
