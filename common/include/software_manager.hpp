@@ -10,6 +10,7 @@
 #include <sdbusplus/async/context.hpp>
 #include <sdbusplus/timer.hpp>
 
+#include <set>
 #include <string>
 
 using namespace phosphor::software::config;
@@ -47,9 +48,9 @@ class SoftwareManager
     //                      Also includes the object path to fetch other
     //                      configuration properties.
     // @returns true        if the configuration was accepted
-    virtual sdbusplus::async::task<bool> initDevice(const std::string& service,
-                                                    const std::string& path,
-                                                    SoftwareConfig& config) = 0;
+    virtual sdbusplus::async::task<bool> initDevice(
+        const std::string& service, const sdbusplus::object_path& path,
+        SoftwareConfig& config) = 0;
 
     std::string getBusName();
 
@@ -57,6 +58,10 @@ class SoftwareManager
 
   private:
     sdbusplus::async::task<void> handleInterfaceAdded(
+        const std::string& service, const sdbusplus::object_path& path,
+        const std::string& interface);
+
+    sdbusplus::async::task<void> handleInterfaceAddedGuarded(
         const std::string& service, const std::string& path,
         const std::string& interface);
 
@@ -79,6 +84,8 @@ class SoftwareManager
 
     friend Software;
     friend Device;
+
+    std::set<sdbusplus::object_path> initializingPaths;
 };
 
 }; // namespace phosphor::software::manager

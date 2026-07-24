@@ -20,7 +20,7 @@ using namespace phosphor::software::manager;
 
 using AsyncMatch = sdbusplus::async::match;
 
-namespace RulesIntf = sdbusplus::bus::match::rules;
+namespace RulesIntf = sdbusplus::match_rules;
 static constexpr auto serviceNameEM = "xyz.openbmc_project.EntityManager";
 
 const auto matchRuleSender = RulesIntf::sender(serviceNameEM);
@@ -151,6 +151,21 @@ std::string SoftwareManager::getBusName()
 }
 
 sdbusplus::async::task<void> SoftwareManager::handleInterfaceAdded(
+    const std::string& service, const sdbusplus::object_path& path,
+    const std::string& interface)
+{
+    if (devices.contains(path) || initializingPaths.contains(path))
+    {
+        debug("Skipping duplicate init for {PATH}", "PATH", path);
+        co_return;
+    }
+
+    initializingPaths.insert(path);
+    co_await handleInterfaceAddedGuarded(service, path, interface);
+    initializingPaths.erase(path);
+}
+
+sdbusplus::async::task<void> SoftwareManager::handleInterfaceAddedGuarded(
     const std::string& service, const std::string& path,
     const std::string& interface)
 {

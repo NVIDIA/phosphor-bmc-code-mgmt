@@ -32,7 +32,6 @@
 # data within them will be kept sorted.
 
 owners:
-- anoo@us.ibm.com
 - gunnar@gmills.xyz
 - mine260309@gmail.com
 - paligill@gmail.com
@@ -42,11 +41,20 @@ reviewers:
 - liuxiwei@ieisystem.com
 
 matchers:
+- partial_regex: common
+  reviewers:
+    - alexander.hansen@9elements.com
+- partial_regex: bios
+  reviewers:
+    - alexander.hansen@9elements.com
+- partial_regex: test
+  reviewers:
+    - alexander.hansen@9elements.com
 
 openbmc:
-- name: Adriana Kobylak
-  email: anoo@us.ibm.com
-  discord: anoo
+- name: Alexander Hansen
+  email: alexander.hansen@9elements.com
+  discord: Alexander
 - name: Gunnar Mills
   email: gunnar@gmills.xyz
   discord: GunnarM

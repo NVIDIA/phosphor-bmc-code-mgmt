@@ -22,6 +22,7 @@ software_common_lib = static_library(
     'software_common_lib',
     'src/software_manager.cpp',
     'src/device.cpp',
+    'src/events.cpp',
     'src/software_config.cpp',
     'src/software.cpp',
     'src/software_update.cpp',
@@ -34,5 +35,6 @@ software_common_lib = static_library(
         sdbusplus_dep,
         libgpiod_dep,
         libpldm_dep,
+        libpldmcpp_dep,
     ],
 )

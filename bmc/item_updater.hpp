@@ -37,7 +37,7 @@ using ItemUpdaterInherit = sdbusplus::server::object_t<
 using MinimumVersionInherit = sdbusplus::server::object_t<
     sdbusplus::server::xyz::openbmc_project::software::MinimumVersion>;
 
-namespace MatchRules = sdbusplus::bus::match::rules;
+namespace MatchRules = sdbusplus::match_rules;
 using VersionClass = phosphor::software::manager::Version;
 using AssociationList =
     std::vector<std::tuple<std::string, std::string, std::string>>;
@@ -100,7 +100,7 @@ class ItemUpdater : public ItemUpdaterInherit, FactoryResetInherit
     {
         if (!useUpdateDBusInterface)
         {
-            versionMatch = std::make_unique<sdbusplus::bus::match_t>(
+            versionMatch = std::make_unique<sdbusplus::match>(
                 bus,
                 MatchRules::interfacesAdded() +
                     MatchRules::path("/xyz/openbmc_project/software"),
@@ -348,7 +348,7 @@ class ItemUpdater : public ItemUpdaterInherit, FactoryResetInherit
     std::map<std::string, std::unique_ptr<Activation>> activations;
 
     /** @brief sdbusplus signal match for Software.Version */
-    std::unique_ptr<sdbusplus::bus::match_t> versionMatch;
+    std::unique_ptr<sdbusplus::match> versionMatch;
 
     /** @brief This entry's associations */
     AssociationList assocs;

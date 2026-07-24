@@ -132,6 +132,7 @@ endif
 
 if common_build or build_tests.allowed()
     libpldm_dep = dependency('libpldm')
+    libpldmcpp_dep = dependency('libpldm++')
     subdir('common')
 endif
 

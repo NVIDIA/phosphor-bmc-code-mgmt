@@ -23,7 +23,8 @@ namespace SoftwareErrors =
     sdbusplus::error::xyz::openbmc_project::software::image;
 
 SoftwareUpdate::SoftwareUpdate(
-    sdbusplus::async::context& ctx, const char* path, Software& software,
+    sdbusplus::async::context& ctx, const sdbusplus::object_path& path,
+    Software& software,
     const std::set<RequestedApplyTimes>& allowedApplyTimes) :
     sdbusplus::aserver::xyz::openbmc_project::software::Update<SoftwareUpdate>(
         ctx, path),
@@ -62,8 +63,12 @@ auto SoftwareUpdate::method_call(start_update_t /*unused*/, auto image,
             "the selected apply time {APPLYTIME} is not allowed by the device",
             "APPLYTIME", applyTime);
         device.updateInProgress = false;
-        elog<sdbusplus::error::xyz::openbmc_project::software::update::
-                 Incompatible>();
+        using Argument =
+            phosphor::logging::xyz::openbmc_project::common::InvalidArgument;
+        elog<sdbusplus::xyz::openbmc_project::Common::Error::InvalidArgument>(
+            Argument::ARGUMENT_NAME("ApplyTime"),
+            Argument::ARGUMENT_VALUE(
+                sdbusplus::message::convert_to_string(applyTime).c_str()));
     }
 
     debug("started asynchronous update with fd {FD}", "FD", image.fd);
