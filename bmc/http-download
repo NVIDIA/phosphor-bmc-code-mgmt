@@ -81,7 +81,7 @@ if [[ ! $filename =~ ^[a-zA-Z0-9_.-]+$ ]]; then
    exit 0
 fi
 
-if [[ ! $filename =~ ^[a-zA-Z0-9_./-]+$ ]]; then
+if [[ ! $destDir =~ ^[a-zA-Z0-9_./-]+$ ]]; then
    echo "Invalid characters in destDir: $destDir. Please provide a valid path."
    update_dbus_properties "$sourceFile" "$destDir" "xyz.openbmc_project.Common.DownloadProgress.DownloadStatus.Invalid" 0
    exit 0
@@ -107,17 +107,18 @@ exec 4>&1  # Save stdout to file descriptor 4
 totalTimeout=2700  # seconds
 
 if [[ $protocol == "HTTP" ]]; then
-    curlOptions="-vlf --progress-bar --max-time $totalTimeout -w '%{json}\n'"
-    curlCommand="curl $curlOptions $outputOption http://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+    # shellcheck disable=SC2086 — $outputOption is intentionally word-split (-o path)
+    curl -vlf --progress-bar --max-time "$totalTimeout" -w '%{json}\n' \
+        $outputOption "http://${serverAddress}/${sourceFile}" >> "$logFile" 2>&1 &
 fi
 
 if [[ $protocol == "HTTPS" ]]; then
-    curlOptions="-vlf --progress-bar --max-time $totalTimeout -w '%{json}\n' --capath /etc/ssl/certs/authority"
-    curlCommand="curl $curlOptions $outputOption https://$serverAddress/$sourceFile >> \"$logFile\" 2>&1 < /dev/null &"
+    # shellcheck disable=SC2086 — $outputOption is intentionally word-split (-o path)
+    curl -vlf --progress-bar --max-time "$totalTimeout" -w '%{json}\n' \
+        --capath /etc/ssl/certs/authority \
+        $outputOption "https://${serverAddress}/${sourceFile}" >> "$logFile" 2>&1 &
 fi
 
-echo $curlCommand
-eval "$curlCommand"  # Use eval to execute the constructed command
 curlPID=$! # Store the PID of the curl process
 
 # Wait for status indications in the log file
