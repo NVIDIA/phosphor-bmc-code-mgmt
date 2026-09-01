@@ -498,9 +498,8 @@ static void StartWatchingUpdate(sdbusplus::message::message& msg)
 {
     using SVersion = server::Version;
     using VersionPurpose = SVersion::VersionPurpose;
-    namespace mesg = sdbusplus::message;
 
-    mesg::object_path objPath;
+    sdbusplus::object_path objPath;
     std::map<std::string, std::map<std::string, std::variant<std::string>>>
         interfaces;
     try
